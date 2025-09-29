@@ -178,6 +178,7 @@ const tableVars: TableVars = {
     cellRects: [],
     cellTexts: []
   },
+
   // ========== Konva 对象 ==========
   /**
    * Stage 实例
@@ -1635,7 +1636,8 @@ const getRuleLabel = (rule: string) => {
  */
 const drawSummaryPart = (
   summaryGroup: Konva.Group | null,
-  summaryCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>
+  summaryCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
+  position: 'left' | 'center' | 'right' = 'left'
 ) => {
   if (!tableVars.stage || !summaryGroup) return
   const summaryRowHeight = props.summaryRowHeight
@@ -1647,9 +1649,8 @@ const drawSummaryPart = (
 
   let x = 0
   summaryCols.forEach((col) => {
-    const pools = tableVars.leftBodyPools
-    const summaryCellRect = drawUnifiedRect({
-      pools,
+    // 直接创建汇总行矩形，不使用对象池
+    const summaryCellRect = new Konva.Rect({
       name: 'summary-cell-rect',
       x,
       y: 0,
@@ -1669,8 +1670,9 @@ const drawSummaryPart = (
     const rule = summaryState[col.columnName] || 'nodisplay'
     const placeholderText = rule === 'nodisplay' ? '不显示' : '计算中...'
     const truncatedTitle = truncateText(placeholderText, textMaxWidth, props.summaryFontSize, summaryFontFamily)
-    const summaryCellText = drawUnifiedText({
-      pools,
+    
+    // 直接创建汇总行文本，不使用对象池
+    const summaryCellText = new Konva.Text({
       name: 'summary-cell-text',
       text: truncatedTitle,
       x,
@@ -1680,9 +1682,20 @@ const drawSummaryPart = (
       fill: summaryTextColor,
       align: col.align || 'left',
       verticalAlign: 'middle',
-      cellHeight: summaryRowHeight,
-      useGetTextX: true
+      width: colWidth,
+      height: summaryRowHeight
     })
+    
+    // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
+    if (col.align === 'center') {
+      summaryCellText.x(x + colWidth / 2)
+      summaryCellText.offsetX(summaryCellText.width() / 2)
+    } else if (col.align === 'right') {
+      summaryCellText.x(x + colWidth - 8)
+    } else {
+      summaryCellText.x(x + 8)
+    }
+    
     summaryGroup.add(summaryCellText)
 
     // 异步计算汇总值并更新文本
@@ -2163,9 +2176,8 @@ const createColumnResizer = (
  * @returns {Konva.Rect} 表头单元格矩形
  */
 const createHeaderCellRect = (x: number, y: number, width: number, height: number, headerGroup: Konva.Group) => {
-  const pools = tableVars.leftBodyPools
-  const rect = drawUnifiedRect({
-    pools,
+  // 直接创建表头矩形，不使用对象池（参考汇总节点的实现方式）
+  const rect = new Konva.Rect({
     name: 'header-cell-rect',
     x,
     y,
@@ -2173,7 +2185,8 @@ const createHeaderCellRect = (x: number, y: number, width: number, height: numbe
     height,
     fill: props.headerBackground,
     stroke: props.borderColor,
-    strokeWidth: 1
+    strokeWidth: 1,
+    listening: false
   })
 
   headerGroup.add(rect)
@@ -2200,7 +2213,6 @@ const createHeaderCellText = (
   height: number,
   headerGroup: Konva.Group
 ) => {
-  const pools = tableVars.leftBodyPools
   const sortOrder = getColumnSortOrder(columnOption.columnName)
   const hasSort = sortOrder !== null
 
@@ -2214,8 +2226,8 @@ const createHeaderCellText = (
     props.headerFontFamily
   )
 
-  const headerText = drawUnifiedText({
-    pools,
+  // 直接创建表头文本，不使用对象池（参考汇总节点的实现方式）
+  const headerText = new Konva.Text({
     name: 'header-cell-text',
     text,
     x,
@@ -2225,9 +2237,26 @@ const createHeaderCellText = (
     fill: props.headerTextColor,
     align: columnOption.align || 'left',
     verticalAlign: columnOption.verticalAlign || 'middle',
-    cellHeight: height,
-    useGetTextX: true
+    width: width,
+    height: height,
+    listening: false
   })
+
+  // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
+  if (columnOption.align === 'center') {
+    headerText.x(x + width / 2)
+    headerText.offsetX(headerText.width() / 2)
+  } else if (columnOption.align === 'right') {
+    headerText.x(x + width - 8)
+  } else {
+    headerText.x(x + 8)
+  }
+
+  // 垂直居中
+  if (columnOption.verticalAlign === 'middle') {
+    headerText.y(y + height / 2)
+    headerText.offsetY(headerText.height() / 2)
+  }
 
   headerGroup.add(headerText)
 
@@ -2591,9 +2620,9 @@ const rebuildGroups = () => {
     centerSummaryClipGroup.add(tableVars.centerSummaryGroup)
     tableVars.summaryLayer.add(tableVars.leftSummaryGroup, tableVars.rightSummaryGroup)
 
-    drawSummaryPart(tableVars.leftSummaryGroup, leftCols)
-    drawSummaryPart(tableVars.centerSummaryGroup, centerCols)
-    drawSummaryPart(tableVars.rightSummaryGroup, rightCols)
+    drawSummaryPart(tableVars.leftSummaryGroup, leftCols, 'left')
+    drawSummaryPart(tableVars.centerSummaryGroup, centerCols, 'center')
+    drawSummaryPart(tableVars.rightSummaryGroup, rightCols, 'right')
   } else {
     tableVars.leftSummaryGroup = null
     tableVars.centerSummaryGroup = null
