@@ -7,6 +7,11 @@ import Konva from 'konva';
 import { getTableContainer, clearPool, getFromPool, getTextX, constrainToRange, returnToPool, truncateText } from './utils'
 import { onMounted, onUnmounted, ref, reactive, computed, watch, nextTick } from 'vue';
 import { webworker } from '@/composables/useWebworker';
+
+// ============================================================================
+// 1. 类型定义和接口 (Types & Interfaces)
+// ============================================================================
+
 const props = defineProps(chartProps);
 
 const COLORS = {
@@ -87,8 +92,7 @@ interface TableVars {
    * 固定表body层
    */
   fixedBodyLayer: Konva.Layer | null
-  summaryLayer: Konva.Layer | null
-
+  // 表头相关
   leftHeaderGroup: Konva.Group | null
   /**
    * 中间主体组裁剪组
@@ -110,6 +114,8 @@ interface TableVars {
    */
   rightBodyGroup: Konva.Group | null
 
+  // 汇总相关
+  summaryLayer: Konva.Layer | null
   leftSummaryGroup: Konva.Group | null
   /**
    * 中间汇总组
@@ -195,66 +201,59 @@ const tableVars: TableVars = {
    */
   centerBodyClipGroup: null,
 
+  // 表头相关
   /**
    * 表头层（固定表头）
    */
   headerLayer: null,
-
-  /**
-   * 表格层（主体）
-   */
-  bodyLayer: null,
-
-  /**
-   * 汇总层（汇总）
-   */
-  summaryLayer: null,
-
-  /**
-   * 固定表body层（固定表body）
-   */
-  fixedBodyLayer: null,
-
   /**
    * 左侧表头组（左侧表头）
    */
   leftHeaderGroup: null,
-
   /**
    * 中间表头组（中间表头）
    */
   centerHeaderGroup: null,
-
   /**
    * 右侧表头组（右侧表头）
    */
   rightHeaderGroup: null,
 
+  // 主体相关
+  /**
+   * 表格层（主体）
+   */
+  bodyLayer: null,
+  /**
+   * 固定表body层（固定表body）
+   */
+  fixedBodyLayer: null,
   /**
    * 左侧主体组（左侧主体）
    */
   leftBodyGroup: null,
-
   /**
    * 中间主体组（中间主体）
    */
   centerBodyGroup: null,
-
   /**
    * 右侧主体组
    */
   rightBodyGroup: null,
 
+  // 汇总相关
+  /**
+   * 汇总层（汇总）
+   */
+  summaryLayer: null,
   /**
    * 左侧汇总组（左侧汇总）
    */
   leftSummaryGroup: null,
-
   /**
    * 中间汇总组（中间汇总）
    */
   centerSummaryGroup: null,
-
   /**
    * 右侧汇总组（右侧汇总）
    */
@@ -385,7 +384,11 @@ interface SortColumn {
   columnName: string
   order: 'asc' | 'desc'
 }
-// 常量定义
+
+// ============================================================================
+// 2. 常量和配置 (Constants & Configuration)
+// ============================================================================
+
 const LAYOUT_CONSTANTS = {
   ICON_AREA_WIDTH: 40, // 右侧图标区域预留宽度
   SORT_ARROW_OFFSET: 34, // 排序箭头距离右边缘的距离
@@ -482,6 +485,10 @@ const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
   return rect
 }
 
+// ============================================================================
+// 3. 响应式状态 (Reactive State)
+// ============================================================================
+
 /**
  * 排序状态 - 单独的响应式变量
  */
@@ -508,6 +515,10 @@ const tableData = ref<Array<ChartDataVo.ChartData>>([])
 const tableColumns = ref<Array<GroupStore.GroupOption | DimensionStore.DimensionOption>>([])
 
 
+// ============================================================================
+// 4. 计算属性 (Computed Properties)
+// ============================================================================
+
 /**
  * 表格容器样式
  */
@@ -520,6 +531,11 @@ const tableContainerStyle = computed(() => {
     background: '#fff'
   }
 })
+
+// ============================================================================
+// 5. 数据管理 (Data Management)
+// ============================================================================
+
 /**
  * 处理表格列
  * @param {Array<GroupStore.GroupOption>} xAxisFields - x轴字段
@@ -543,6 +559,7 @@ const handleTableColumns = (
     .concat(centerColsy)
     .concat(rightColsy)
 }
+
 /**
  * 原始数据存储 - 不被排序或过滤修改
  */
@@ -611,16 +628,22 @@ const resetTableVars = () => {
   // 重置 Konva 对象
   tableVars.stage = null
   tableVars.scrollbarLayer = null
+  
+  // 表头相关
   tableVars.headerLayer = null
-  tableVars.bodyLayer = null
-  tableVars.summaryLayer = null
-  tableVars.fixedBodyLayer = null
   tableVars.leftHeaderGroup = null
   tableVars.centerHeaderGroup = null
   tableVars.rightHeaderGroup = null
+
+  // 主体相关
+  tableVars.bodyLayer = null
+  tableVars.fixedBodyLayer = null
   tableVars.leftBodyGroup = null
   tableVars.centerBodyGroup = null
   tableVars.rightBodyGroup = null
+
+  // 汇总相关
+  tableVars.summaryLayer = null
   tableVars.leftSummaryGroup = null
   tableVars.centerSummaryGroup = null
   tableVars.rightSummaryGroup = null
@@ -666,44 +689,6 @@ const resetTableVars = () => {
   Object.keys(summaryState).forEach((key) => delete summaryState[key])
 }
 
-/**
- * 处理表头排序点击
- * @param {string} columnName - 列名
- * @returns {void}
- */
-const handleHeaderSort = (columnName: string) => {
-  const existingIndex = sortColumns.value.findIndex((s) => s.columnName === columnName)
-
-  if (existingIndex >= 0) {
-    // 如果已经存在，切换排序方向
-    const current = sortColumns.value[existingIndex]
-    if (current.order === 'asc') {
-      current.order = 'desc'
-    } else {
-      // 移除排序
-      sortColumns.value.splice(existingIndex, 1)
-    }
-  } else {
-    // 新增排序（默认降序）
-    sortColumns.value.push({
-      columnName,
-      order: 'desc'
-    })
-  }
-
-  // 重新处理数据 - 使用原始数据重新排序
-  handleTableData(originalData.value)
-}
-
-/**
- * 获取列的排序状态
- * @param {string} columnName - 列名
- * @returns {'asc' | 'desc' | null} 排序状态
- */
-const getColumnSortOrder = (columnName: string): 'asc' | 'desc' | null => {
-  const sortColumn = sortColumns.value.find((s) => s.columnName === columnName)
-  return sortColumn ? sortColumn.order : null
-}
 
 const summaryRowHeight = computed(() => (props.enableSummary ? props.summaryRowHeight : 0))
 
@@ -758,6 +743,7 @@ const initStage = () => {
     tableVars.stage.size({ width, height })
   }
 
+  // 主体相关
   // 1. 主体内容层（最底层 - 可滚动的body部分）
   if (!tableVars.bodyLayer) {
     tableVars.bodyLayer = new Konva.Layer()
@@ -782,7 +768,7 @@ const initStage = () => {
     tableVars.stage.add(tableVars.scrollbarLayer)
   }
 
-  // 5. 汇总层（像header一样，统一管理）
+  // 汇总层
   if (!tableVars.summaryLayer) {
     tableVars.summaryLayer = new Konva.Layer()
     tableVars.stage.add(tableVars.summaryLayer)
@@ -802,12 +788,20 @@ const destroyStage = () => {
   tableVars.stage?.destroy()
   tableVars.stage = null
   // 修复后有4个真实的Layer
+  // 表头相关
   tableVars.headerLayer = null
+  
+  // 主体相关
   tableVars.bodyLayer = null
   tableVars.fixedBodyLayer = null
-  tableVars.scrollbarLayer = null
-  // 这些只是引用，设为null即可
+  
+  // 汇总相关
   tableVars.summaryLayer = null
+  
+  // 滚动条相关
+  tableVars.scrollbarLayer = null
+  
+  // 其他
   tableVars.highlightRect = null
 }
 
@@ -988,20 +982,27 @@ const scheduleLayersBatchDraw = (layers: Array<'header' | 'body' | 'fixed' | 'sc
   // 简化版本：直接执行绘制，不使用批量优化
   layers.forEach((layerType) => {
     switch (layerType) {
+      // 表头相关
       case 'header':
         tableVars.headerLayer?.batchDraw() // 表头层（固定不滚动）
         break
+      
+      // 主体相关
       case 'body':
         tableVars.bodyLayer?.batchDraw() // 主体内容层（可滚动）
         break
       case 'fixed':
         tableVars.fixedBodyLayer?.batchDraw() // 固定列层（左右固定）
         break
-      case 'scrollbar':
-        tableVars.scrollbarLayer?.batchDraw() // 滚动条层
-        break
+      
+      // 汇总相关
       case 'summary':
         tableVars.summaryLayer?.batchDraw() // 汇总行层（底部固定）
+        break
+      
+      // 滚动条相关
+      case 'scrollbar':
+        tableVars.scrollbarLayer?.batchDraw() // 滚动条层
         break
     }
   })
@@ -1052,6 +1053,7 @@ const updateScrollPositions = () => {
   const centerX = -tableVars.stageScrollX
   const headerX = -tableVars.stageScrollX
 
+  // 主体相关 - 更新滚动位置
   /**
    * 更新左侧和右侧主体（只有 Y 位置变化）
    * 注意：由于左右body组现在在裁剪组中，Y位置应该相对于裁剪组
@@ -1485,56 +1487,6 @@ const renderRowCells = (params: {
     colIndex += result.skipCols
   }
 }
-/**
- * 画body区域 只渲染可视区域的行
- * @param {Konva.Group | null} bodyGroup - 分组
- * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} bodyCols - 列
- * @param {KonvaNodePools} pools - 对象池
- * @returns {void}
- */
-const drawBodyPart = (
-  bodyGroup: Konva.Group | null,
-  bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
-  pools: KonvaNodePools
-) => {
-  if (!tableVars.stage || !bodyGroup) return
-
-  calculateVisibleRows()
-
-  const bodyFontSize = props.bodyFontSize
-  const spanMethod = typeof props.spanMethod === 'function' ? props.spanMethod : null
-  const hasSpanMethod = !!spanMethod
-
-  // 建立全局列索引映射
-  const globalIndexByColName = new Map<string, number>()
-  tableColumns.value.forEach((c, idx) => globalIndexByColName.set(c.columnName as string, idx))
-
-  // 清理旧节点
-  recoverKonvaNode(bodyGroup, pools)
-
-  // 渲染可视区域的行
-  for (let rowIndex = tableVars.visibleRowStart; rowIndex <= tableVars.visibleRowEnd; rowIndex++) {
-    const y = rowIndex * props.bodyRowHeight
-    renderRowCells({
-      rowIndex,
-      y,
-      bodyCols,
-      pools,
-      bodyGroup,
-      spanMethod,
-      hasSpanMethod,
-      globalIndexByColName,
-      bodyFontSize
-    })
-  }
-
-  // 渲染完成后，若存在点击高亮，保持其在最顶层
-  if (tableVars.highlightRect) {
-    tableVars.highlightRect.moveToTop()
-    const layer = bodyGroup.getLayer()
-    layer?.batchDraw()
-  }
-}
 
 /**
  * 计算某列的汇总显示值
@@ -1754,6 +1706,7 @@ const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
 
     if (needsRerender) {
       const { leftCols, centerCols, rightCols, leftWidth, centerWidth } = getSplitColumns()
+      // 主体相关 - 重新绘制所有主体部分
       drawBodyPart(tableVars.leftBodyGroup, leftCols, tableVars.leftBodyPools)
       drawBodyPart(tableVars.centerBodyGroup, centerCols, tableVars.centerBodyPools)
       drawBodyPart(tableVars.rightBodyGroup, rightCols, tableVars.rightBodyPools)
@@ -1839,11 +1792,18 @@ const handleGlobalResize = () => {
  * @returns {void}
  */
 const clearGroups = () => {
+  // 表头相关
   tableVars.headerLayer?.destroyChildren()
+  
+  // 主体相关
   tableVars.bodyLayer?.destroyChildren()
   tableVars.fixedBodyLayer?.destroyChildren()
-  tableVars.scrollbarLayer?.destroyChildren()
+  
+  // 汇总相关
   tableVars.summaryLayer?.destroyChildren()
+  
+  // 滚动条相关
+  tableVars.scrollbarLayer?.destroyChildren()
   // 清理 Body 对象池
   clearPool(tableVars.leftBodyPools.cellRects)
   clearPool(tableVars.leftBodyPools.cellTexts)
@@ -1959,6 +1919,20 @@ const handleSortAction = (
 
   handleTableData(props.data)
   clearGroups()
+}
+
+// ============================================================================
+// 6. Header模块 (Header Module)
+// ============================================================================
+
+/**
+ * 获取列的排序状态
+ * @param {string} columnName - 列名
+ * @returns {'asc' | 'desc' | null} 排序状态
+ */
+const getColumnSortOrder = (columnName: string): 'asc' | 'desc' | null => {
+  const sortColumn = sortColumns.value.find(col => col.columnName === columnName)
+  return sortColumn ? sortColumn.order : null
 }
 
 /**
@@ -2369,6 +2343,18 @@ const drawHeaderPart = (
     x += columnWidth
   }
 }
+
+/**
+ * 创建Header组 - 快捷方法
+ */
+const createHeaderLeftGroups = (x: number, y: number) => createGroup('header', 'left', x, y)
+const createHeaderCenterGroups = (x: number, y: number) => createGroup('header', 'center', x, y)
+const createHeaderRightGroups = (x: number, y: number) => createGroup('header', 'right', x, y)
+
+// ============================================================================
+// 7. 滚动条模块 (Scrollbar Module)
+// ============================================================================
+
 /**
  * 设置垂直滚动条事件
  * @returns {void}
@@ -2660,7 +2646,7 @@ const rebuildGroups = () => {
 
   tableVars.fixedBodyLayer.add(leftBodyClipGroup, rightBodyClipGroup) // 添加裁剪组到固定层
 
-  // 绘制主体
+  // 主体相关 - 绘制所有主体部分
   drawBodyPart(tableVars.leftBodyGroup, leftCols, tableVars.leftBodyPools)
   drawBodyPart(tableVars.centerBodyGroup, centerCols, tableVars.centerBodyPools)
   drawBodyPart(tableVars.rightBodyGroup, rightCols, tableVars.rightBodyPools)
@@ -2709,10 +2695,17 @@ const rebuildGroups = () => {
   }
 
   // 确保层级绘制顺序正确：固定列在上层
+  // 主体相关
   tableVars.bodyLayer?.batchDraw() // 1. 先绘制可滚动的中间内容
   tableVars.fixedBodyLayer?.batchDraw() // 2. 再绘制固定列（覆盖在上面）
+  
+  // 表头相关
   tableVars.headerLayer.batchDraw() // 3. 表头在最上层
+  
+  // 汇总相关
   tableVars.summaryLayer?.batchDraw() // 4. 汇总层（像header一样统一管理）
+  
+  // 滚动条相关
   tableVars.scrollbarLayer?.batchDraw() // 5. 滚动条在最顶层
 }
 /**
@@ -2756,15 +2749,61 @@ const createGroup = (
   return new Konva.Group(groupConfig)
 }
 
-// 快捷方法 - 表头分组
-const createHeaderLeftGroups = (x: number, y: number) => createGroup('header', 'left', x, y)
-const createHeaderCenterGroups = (x: number, y: number) => createGroup('header', 'center', x, y)
-const createHeaderRightGroups = (x: number, y: number) => createGroup('header', 'right', x, y)
-
 // 快捷方法 - 表体分组
 const createBodyLeftGroups = (x: number, y: number) => createGroup('body', 'left', x, y)
 const createBodyCenterGroups = (x: number, y: number) => createGroup('body', 'center', x, y)
 const createBodyRightGroups = (x: number, y: number) => createGroup('body', 'right', x, y)
+
+/**
+ * 画body区域 只渲染可视区域的行
+ * @param {Konva.Group | null} bodyGroup - 分组
+ * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} bodyCols - 列
+ * @param {KonvaNodePools} pools - 对象池
+ * @returns {void}
+ */
+const drawBodyPart = (
+  bodyGroup: Konva.Group | null,
+  bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
+  pools: KonvaNodePools
+) => {
+  if (!tableVars.stage || !bodyGroup) return
+
+  calculateVisibleRows()
+
+  const bodyFontSize = props.bodyFontSize
+  const spanMethod = typeof props.spanMethod === 'function' ? props.spanMethod : null
+  const hasSpanMethod = !!spanMethod
+
+  // 建立全局列索引映射
+  const globalIndexByColName = new Map<string, number>()
+  tableColumns.value.forEach((c, idx) => globalIndexByColName.set(c.columnName as string, idx))
+
+  // 清理旧节点
+  recoverKonvaNode(bodyGroup, pools)
+
+  // 渲染可视区域的行
+  for (let rowIndex = tableVars.visibleRowStart; rowIndex <= tableVars.visibleRowEnd; rowIndex++) {
+    const y = rowIndex * props.bodyRowHeight
+    renderRowCells({
+      rowIndex,
+      y,
+      bodyCols,
+      pools,
+      bodyGroup,
+      spanMethod,
+      hasSpanMethod,
+      globalIndexByColName,
+      bodyFontSize
+    })
+  }
+
+  // 渲染完成后，若存在点击高亮，保持其在最顶层
+  if (tableVars.highlightRect) {
+    tableVars.highlightRect.moveToTop()
+    const layer = bodyGroup.getLayer()
+    layer?.batchDraw()
+  }
+}
 
 // 快捷方法 - 汇总分组
 const createSummaryLeftGroups = (x: number, y: number) => createGroup('summary', 'left', x, y)
@@ -2979,7 +3018,7 @@ const updateVerticalScroll = (offsetY: number) => {
     // 重新渲染可视区域
     const { leftCols, centerCols, rightCols } = getSplitColumns()
 
-    // 批量执行重绘操作，减少单独的绘制调用
+    // 主体相关 - 批量执行重绘操作，减少单独的绘制调用
     const renderOperations = [
       () => drawBodyPart(tableVars.leftBodyGroup, leftCols, tableVars.leftBodyPools),
       () => drawBodyPart(tableVars.centerBodyGroup, centerCols, tableVars.centerBodyPools),
@@ -2999,7 +3038,7 @@ const updateVerticalScroll = (offsetY: number) => {
   const fixedColumnsY = -tableVars.stageScrollY // 左右固定列相对于裁剪组
   const centerY = -tableVars.stageScrollY
 
-  // 固定列和中间列随垂直滚动
+  // 主体相关 - 固定列和中间列随垂直滚动
   tableVars.leftBodyGroup.y(fixedColumnsY)
   tableVars.rightBodyGroup.y(fixedColumnsY)
   tableVars.centerBodyGroup.y(centerY)
@@ -3022,7 +3061,7 @@ const updateHorizontalScroll = (offsetX: number) => {
   const headerX = leftWidth - tableVars.stageScrollX
   const centerX = -tableVars.stageScrollX
 
-  // 中间区域随横向滚动
+  // 主体相关 - 中间区域随横向滚动
   tableVars.centerHeaderGroup.x(headerX)
   tableVars.centerBodyGroup.x(centerX)
   tableVars.centerSummaryGroup?.x(headerX) // 修复：汇总行应该和表头使用相同的X坐标（headerX）
