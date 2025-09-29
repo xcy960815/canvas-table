@@ -119,10 +119,10 @@ const tableConfig = reactive({
   headerTextColor: '#303133',
   headerFontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, Ubuntu, sans-serif',
   headerFontSize: 14,
-  headerBackground: '#fafafa', // 新增
-  bodyTextColor: '#374151', // 新增
-  bodyBackgroundOdd: '#ffffff', // 新增
-  bodyBackgroundEven: '#fafafa', // 新增
+  headerBackground: '#fafafa', 
+  bodyTextColor: '#374151', 
+  bodyBackgroundOdd: '#ffffff', 
+  bodyBackgroundEven: '#fafafa', 
   bodyFontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, Ubuntu, sans-serif',
   bodyFontSize: 13,
   summaryFontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, Ubuntu, sans-serif',

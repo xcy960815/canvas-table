@@ -1,8 +1,8 @@
-import type { PropType } from 'vue'
+import { ref, type PropType } from 'vue'
 
 const defaultFontFamily = 'Arial, sans-serif'
 
-export const chartProps = {
+export const tableProps = {
   // ========== 数据相关 Props ==========
   /**
    * 图表标题
@@ -191,4 +191,98 @@ export const chartProps = {
    * 排序箭头颜色
    */
   sortActiveColor: { type: String, default: '#409EFF' }
+
 }
+
+
+interface StaticParams {
+  title: string
+  data: Array<ChartDataVo.ChartData>
+  xAxisFields: Array<GroupStore.GroupOption>
+  yAxisFields: Array<DimensionStore.DimensionOption>
+  enableSummary: boolean
+  bufferRows: number
+  minAutoColWidth: number
+  highlightCellBackground: string
+  highlightRowBackground: string
+  highlightColBackground: string
+  headerRowHeight: number
+  headerBackground: string
+  headerTextColor: string
+  headerFontFamily: string
+  headerFontSize: number
+  bodyRowHeight: number
+  bodyBackgroundOdd: string
+  bodyBackgroundEven: string
+  bodyTextColor: string
+  bodyFontFamily: string
+  bodyFontSize: number
+  borderColor: string
+  summaryRowHeight: number
+  summaryBackground: string
+  summaryTextColor: string
+  summaryFontFamily: string
+  summaryFontSize: number
+  scrollbarSize: number
+  scrollbarBackground: string
+  scrollbarThumbBackground: string
+  scrollbarThumbHoverBackground: string
+  sortActiveColor: string
+  spanMethod?: (args: {
+    row: ChartDataVo.ChartData
+    column: GroupStore.GroupOption | DimensionStore.DimensionOption
+    rowIndex: number
+    colIndex: number
+  }) => { rowspan: number; colspan: number } | [number, number] | null | undefined
+}
+
+/**
+ * 充当全局变量 避免在各个handler之间传递 props
+ */
+export const staticParams: StaticParams = {
+  title: '',
+  data: [],
+  xAxisFields: [],
+  yAxisFields: [],
+  enableSummary: false,
+  bufferRows: 50,
+  minAutoColWidth: 100,
+
+  highlightCellBackground: 'rgba(24, 144, 255, 1)',
+  highlightRowBackground: 'rgba(64, 158, 255, 0.1)',
+  highlightColBackground: 'rgba(64, 158, 255, 0.08)',
+  headerRowHeight: 32,
+  headerBackground: '#f7f7f9',
+  headerTextColor: '#303133',
+  headerFontFamily: defaultFontFamily,
+  headerFontSize: 13,
+  bodyRowHeight: 30,
+  bodyBackgroundOdd: '#ffffff',
+  bodyBackgroundEven: '#fafafa',
+  bodyTextColor: '#303133',
+  bodyFontFamily: defaultFontFamily,
+  bodyFontSize: 13,
+  borderColor: '#dcdfe6',
+  summaryRowHeight: 30,
+  summaryBackground: '#f7f7f9',
+  summaryTextColor: '#303133',
+  summaryFontFamily: defaultFontFamily,
+  summaryFontSize: 14,
+  scrollbarSize: 16,
+  scrollbarBackground: '#f1f1f1',
+  scrollbarThumbBackground: '#c1c1c1',
+  scrollbarThumbHoverBackground: '#a8a8a8',
+  sortActiveColor: '#409EFF',
+  spanMethod: undefined
+}
+
+/**
+* 表格数据
+*/
+export const tableData = ref<Array<ChartDataVo.ChartData>>([])
+
+
+/**
+ * 表格列
+ */
+export const tableColumns = ref<Array<GroupStore.GroupOption | DimensionStore.DimensionOption>>([])

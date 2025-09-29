@@ -1,5 +1,4 @@
 import Konva from 'konva'
-
 /**
  * 获取容器元素
  * @returns {HTMLDivElement | null} 容器元素
@@ -517,4 +516,56 @@ export const getRuleLabel = (rule: string) => {
         default:
             return ''
     }
+}
+
+
+/**
+ * 设置指针样式的辅助函数
+ * @param {boolean} on - 是否显示指针
+ * @param {string} cursor - 指针样式
+ */
+export const setPointerStyle = (stage: Konva.Stage | null, on: boolean, cursor: string) => {
+    if (stage) stage.container().style.cursor = on ? cursor : 'default'
+}
+
+
+/**
+ * 统一的分组创建工厂方法
+ * @param {'header' | 'body' | 'summary'} groupType - 分组类型
+ * @param {'left' | 'center' | 'right'} position - 左中右位置
+ * @param {number} x - x坐标
+ * @param {number} y - y坐标
+ * @param {Object} [options] - 可选配置（如裁剪参数）
+ * @param {number} options.x - 裁剪x坐标
+ * @param {number} options.y - 裁剪y坐标
+ * @param {number} options.width - 裁剪宽度
+ * @param {number} options.height - 裁剪高度
+ * @returns {Konva.Group}
+ */
+export const createGroup = (
+    groupType: 'header' | 'body' | 'summary',
+    position: 'left' | 'center' | 'right',
+    x: number,
+    y: number,
+    clip?: {
+        x: number
+        y: number
+        width: number
+        height: number
+    }
+): Konva.Group => {
+    const groupName = `${position}-${groupType}${clip ? '-clip' : ''}-group`
+
+    const groupConfig: Konva.GroupConfig = {
+        x: position === 'left' ? 0 : x, // 左侧固定列的x永远为0
+        y: position === 'center' && groupType !== 'header' ? y : groupType === 'header' ? 0 : y,
+        name: groupName
+    }
+
+    // 如果是裁剪组，添加裁剪配置
+    if (clip) {
+        groupConfig.clip = clip
+    }
+
+    return new Konva.Group(groupConfig)
 }
