@@ -57,6 +57,20 @@
       <el-form-item label="汇总高度">
         <el-input-number v-model="tableConfig.summaryRowHeight" :step="10" />
       </el-form-item>
+      <el-form-item label="汇总背景色">
+        <el-color-picker v-model="tableConfig.summaryBackground" show-alpha />
+      </el-form-item>
+      <el-form-item label="汇总文字颜色">
+        <el-color-picker v-model="tableConfig.summaryTextColor" show-alpha />
+      </el-form-item>
+      <el-form-item label="汇总字体大小">
+        <el-input-number v-model="tableConfig.summaryFontSize" :step="2" />
+      </el-form-item>
+      <el-form-item label="汇总字体">
+        <el-select style="width: 200px" v-model="tableConfig.summaryFontFamily" placeholder="请选择汇总字体">
+          <el-option v-for="item in fontFamilyOptions" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="表格高度">
         <el-input-number v-model="tableConfig.chartHeight" :step="100" />
       </el-form-item>
@@ -81,20 +95,19 @@
         <el-switch v-model="spanConfig.enableColSpan" />
       </el-form-item>
     </el-form>
-    <CanvasTable :enable-summary="tableConfig.enableSummary" :summary-height="tableConfig.summaryRowHeight"
+    <CanvasTable :enable-summary="tableConfig.enableSummary" :summary-row-height="tableConfig.summaryRowHeight"
       :chart-height="tableConfig.chartHeight" :chart-width="tableConfig.chartWidth" :x-axis-fields="xAxisFields"
       :highlight-cell-background="tableConfig.highlightCellBackground" :header-text-color="tableConfig.headerTextColor"
       :body-text-color="tableConfig.bodyTextColor" :header-font-family="tableConfig.headerFontFamily"
-      :header-font-size="tableConfig.headerFontSize" :header-height="tableConfig.headerRowHeight"
+      :header-font-size="tableConfig.headerFontSize" :header-row-height="tableConfig.headerRowHeight"
       :body-font-family="tableConfig.bodyFontFamily" :body-font-size="tableConfig.bodyFontSize"
       :summary-font-family="tableConfig.summaryFontFamily" :summary-font-size="tableConfig.summaryFontSize"
       :header-background="tableConfig.headerBackground" :summary-background="tableConfig.summaryBackground"
       :body-background-odd="tableConfig.bodyBackgroundOdd" :body-background-even="tableConfig.bodyBackgroundEven"
-      :scrollbar-background="tableConfig.scrollbarBackground" :scrollbar-thumb="tableConfig.scrollbarThumbBackground"
-      :scrollbar-thumb-hover="tableConfig.scrollbarThumbHoverBackground" :buffer-rows="tableConfig.bufferRows"
+      :scrollbar-background="tableConfig.scrollbarBackground" :scrollbar-thumb-background="tableConfig.scrollbarThumbBackground"
+      :scrollbar-thumb-hover-background="tableConfig.scrollbarThumbHoverBackground" :buffer-rows="tableConfig.bufferRows"
       :min-auto-col-width="tableConfig.minAutoColWidth" :sort-active-color="tableConfig.sortActiveColor"
-      :y-axis-fields="yAxisFields" :enable-row-hover-highlight="tableConfig.enableRowHoverHighlight"
-      :enable-col-hover-highlight="tableConfig.enableColHoverHighlight" :data="data"
+      :y-axis-fields="yAxisFields" :data="data"
       :highlight-row-background="tableConfig.highlightRowBackground"
       :highlight-col-background="tableConfig.highlightColBackground" :span-method="spanMethod">
       <!-- @cell-click="handleCellClick"

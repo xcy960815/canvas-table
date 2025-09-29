@@ -1,10 +1,11 @@
 import Konva from 'konva'
 import { staticParams } from "./parameter"
-import { clearPool, constrainToRange, getTableContainer,createGroup } from './utils'
+import { clearPool, constrainToRange, getTableContainer,createGroup, setPointerStyle } from './utils'
 import { createHeaderCenterGroups, createHeaderLeftGroups, createHeaderRightGroups, drawHeaderPart, headerVars } from './header-handler'
 import { bodyVars, calculateVisibleRows, getScrollLimits, getSplitColumns,createBodyCenterGroups,createBodyLeftGroups,createBodyRightGroups,drawBodyPart,getSummaryRowHeight } from './body-handler'
 import { summaryVars,createSummaryLeftGroups,createSummaryCenterGroups,createSummaryRightGroups,drawSummaryPart } from './summary-handler'
-import { drawHorizontalScrollbar, drawVerticalScrollbar, scrollbarVars } from './scrollbar-handler'
+import { drawHorizontalScrollbar, drawVerticalScrollbar, scrollbarVars, updateScrollPositions } from './scrollbar-handler'
+import { tableData } from './parameter'
 
 interface StageVars {
     stage: Konva.Stage | null,
@@ -228,7 +229,8 @@ export const rebuildGroups = () => {
     const { maxScrollX, maxScrollY } = getScrollLimits()
     const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
     const horizontalScrollbarHeight = maxScrollX > 0 ? staticParams.scrollbarSize : 0
-
+    
+    
     // 为中间表头也创建裁剪组，防止表头横向滚动时遮挡固定列
     const centerHeaderClipGroup = createGroup('header', 'center', 0, 0, {
         x: 0,
@@ -361,4 +363,89 @@ export const rebuildGroups = () => {
 
     // 滚动条相关
     scrollbarVars.scrollbarLayer?.batchDraw() // 5. 滚动条在最顶层
+}
+
+
+/**
+ * 全局鼠标移动处理
+ * @param {MouseEvent} mouseEvent - 鼠标事件
+ */
+export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
+    if (!stageVars.stage) return
+    stageVars.stage.setPointersPositions(mouseEvent)
+
+    // 手动拖拽导致的垂直滚动
+    if (scrollbarVars.isDraggingVerticalThumb) {
+        const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
+        const { maxScrollY, maxScrollX } = getScrollLimits()
+        const stageHeight = stageVars.stage.height()
+        const trackHeight =
+            stageHeight -
+            staticParams.headerRowHeight -
+            (staticParams.enableSummary ? staticParams.summaryRowHeight : 0) -
+            (maxScrollX > 0 ? staticParams.scrollbarSize : 0)
+        const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
+        const scrollRatio = deltaY / (trackHeight - thumbHeight)
+        const newScrollY = scrollbarVars.dragStartScrollY + scrollRatio * maxScrollY
+
+        const oldScrollY = scrollbarVars.stageScrollY
+        scrollbarVars.stageScrollY = constrainToRange(newScrollY, 0, maxScrollY)
+
+        // 检查是否需要重新渲染虚拟滚动内容
+        const oldVisibleStart = bodyVars.visibleRowStart
+        const oldVisibleEnd = bodyVars.visibleRowEnd
+        calculateVisibleRows()
+
+        const needsRerender =
+            bodyVars.visibleRowStart !== oldVisibleStart ||
+            bodyVars.visibleRowEnd !== oldVisibleEnd ||
+            Math.abs(scrollbarVars.stageScrollY - oldScrollY) > staticParams.bodyRowHeight * 5
+
+        if (needsRerender) {
+            const { leftCols, centerCols, rightCols } = getSplitColumns()
+            // 主体相关 - 重新绘制所有主体部分
+            drawBodyPart(bodyVars.leftBodyGroup, leftCols, bodyVars.leftBodyPools)
+            drawBodyPart(bodyVars.centerBodyGroup, centerCols, bodyVars.centerBodyPools)
+            drawBodyPart(bodyVars.rightBodyGroup, rightCols, bodyVars.rightBodyPools)
+        }
+
+        updateScrollPositions()
+        return
+    }
+
+    // 手动拖拽导致的水平滚动
+    if (scrollbarVars.isDraggingHorizontalThumb) {
+        const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
+        const { maxScrollX } = getScrollLimits()
+        const { leftWidth, rightWidth, centerWidth } = getSplitColumns()
+        const stageWidth = stageVars.stage.width()
+        const visibleWidth = stageWidth - leftWidth - rightWidth - staticParams.scrollbarSize
+        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
+        const scrollRatio = deltaX / (visibleWidth - thumbWidth)
+        const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxScrollX
+
+        scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxScrollX)
+        updateScrollPositions()
+        return
+    }
+}
+
+/**
+ * 全局鼠标抬起处理
+ * @param {MouseEvent} mouseEvent - 鼠标事件
+ */
+export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
+    if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
+
+    // 滚动条拖拽结束
+    if (scrollbarVars.isDraggingVerticalThumb || scrollbarVars.isDraggingHorizontalThumb) {
+        scrollbarVars.isDraggingVerticalThumb = false
+        scrollbarVars.isDraggingHorizontalThumb = false
+        setPointerStyle(stageVars.stage, false, 'default')
+        if (scrollbarVars.verticalScrollbarThumb && !scrollbarVars.isDraggingVerticalThumb)
+            scrollbarVars.verticalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
+        if (scrollbarVars.horizontalScrollbarThumb && !scrollbarVars.isDraggingHorizontalThumb)
+            scrollbarVars.horizontalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
+        scrollbarVars.scrollbarLayer?.batchDraw()
+    }
 }

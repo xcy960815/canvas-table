@@ -2,18 +2,15 @@
   <div id="table-container" class="table-container" :style="tableContainerStyle"></div>
 </template>
 <script lang="ts" setup>
-import { tableProps, staticParams, tableData, tableColumns } from './parameter';
+import { tableProps, staticParams, tableColumns } from './parameter';
 import {
   getTableContainer,
-  constrainToRange,
-  setPointerStyle,
 } from './utils'
 import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { stageVars, initStage, destroyStage, clearGroups,rebuildGroups } from './stage-handler';
+import { stageVars, initStage, destroyStage, clearGroups,rebuildGroups, handleGlobalMouseMove, handleGlobalMouseUp } from './stage-handler';
 import { sortColumns, handleTableData } from './header-handler';
-import { calculateVisibleRows, getScrollLimits, getSplitColumns, drawBodyPart } from "./body-handler";
-import { bodyVars } from './body-handler';
-import { scrollbarVars, updateScrollPositions, updateHorizontalScroll, updateVerticalScroll } from './scrollbar-handler';
+import { calculateVisibleRows } from "./body-handler";
+import { handleMouseWheel } from './scrollbar-handler';
 import { refreshTable } from './stage-handler';
 
 const props = defineProps(tableProps);
@@ -55,115 +52,7 @@ const handleTableColumns = (
     .concat(rightColsy)
 }
 
-
-
-
-/**
- * 全局鼠标移动处理
- * @param {MouseEvent} mouseEvent - 鼠标事件
- */
-const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
-  if (!stageVars.stage) return
-  stageVars.stage.setPointersPositions(mouseEvent)
-
-  // 手动拖拽导致的垂直滚动
-  if (scrollbarVars.isDraggingVerticalThumb) {
-    const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
-    const { maxScrollY, maxScrollX } = getScrollLimits()
-    const stageHeight = stageVars.stage.height()
-    const trackHeight =
-      stageHeight -
-      props.headerRowHeight -
-      (props.enableSummary ? props.summaryRowHeight : 0) - // 注释汇总高度
-      (maxScrollX > 0 ? props.scrollbarSize : 0)
-    const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * props.bodyRowHeight))
-    const scrollRatio = deltaY / (trackHeight - thumbHeight)
-    const newScrollY = scrollbarVars.dragStartScrollY + scrollRatio * maxScrollY
-
-    const oldScrollY = scrollbarVars.stageScrollY
-    scrollbarVars.stageScrollY = constrainToRange(newScrollY, 0, maxScrollY)
-
-    // 检查是否需要重新渲染虚拟滚动内容
-    const oldVisibleStart = bodyVars.visibleRowStart
-    const oldVisibleEnd = bodyVars.visibleRowEnd
-    calculateVisibleRows()
-
-    const needsRerender =
-      bodyVars.visibleRowStart !== oldVisibleStart ||
-      bodyVars.visibleRowEnd !== oldVisibleEnd ||
-      Math.abs(scrollbarVars.stageScrollY - oldScrollY) > props.bodyRowHeight * 5 // 配合更大的缓冲行数，减少重新渲染频率
-
-    if (needsRerender) {
-      const { leftCols, centerCols, rightCols } = getSplitColumns()
-      // 主体相关 - 重新绘制所有主体部分
-      drawBodyPart(bodyVars.leftBodyGroup, leftCols, bodyVars.leftBodyPools)
-      drawBodyPart(bodyVars.centerBodyGroup, centerCols, bodyVars.centerBodyPools)
-      drawBodyPart(bodyVars.rightBodyGroup, rightCols, bodyVars.rightBodyPools)
-    }
-
-    updateScrollPositions()
-    return
-  }
-
-  // 手动拖拽导致的水平滚动
-  if (scrollbarVars.isDraggingHorizontalThumb) {
-    const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
-
-    const { maxScrollX } = getScrollLimits()
-    const { leftWidth, rightWidth, centerWidth } = getSplitColumns()
-    const stageWidth = stageVars.stage.width()
-    const visibleWidth = stageWidth - leftWidth - rightWidth - props.scrollbarSize
-    const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
-    const scrollRatio = deltaX / (visibleWidth - thumbWidth)
-    const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxScrollX
-
-    scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxScrollX)
-    updateScrollPositions()
-    return
-  }
-}
-
-/**
- * 全局鼠标抬起处理
- * @param {MouseEvent} mouseEvent - 鼠标事件
- */
-const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
-  if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
-
-  // 滚动条拖拽结束
-  if (scrollbarVars.isDraggingVerticalThumb || scrollbarVars.isDraggingHorizontalThumb) {
-    scrollbarVars.isDraggingVerticalThumb = false
-    scrollbarVars.isDraggingHorizontalThumb = false
-    setPointerStyle(stageVars.stage, false, 'default')
-    if (scrollbarVars.verticalScrollbarThumb && !scrollbarVars.isDraggingVerticalThumb)
-      scrollbarVars.verticalScrollbarThumb.fill(props.scrollbarThumbBackground)
-    if (scrollbarVars.horizontalScrollbarThumb && !scrollbarVars.isDraggingHorizontalThumb)
-      scrollbarVars.horizontalScrollbarThumb.fill(props.scrollbarThumbBackground)
-    scrollbarVars.scrollbarLayer?.batchDraw()
-  }
-
-  // 列宽拖拽结束 - 已注释掉
-  // if (tableVars.isResizingColumn && tableVars.resizingColumnName) {
-  //   const resizingColumnName = tableVars.resizingColumnName
-  //   const currentWidth = tableVars.columnWidthOverrides[resizingColumnName]
-
-  //   // 触发列宽改变事件，让父组件可以保存列宽配置
-  //   if (emits && currentWidth !== undefined) {
-  //     emits('column-width-change', {
-  //       columnName: resizingColumnName,
-  //       width: currentWidth,
-  //       columnWidthOverrides: { ...tableVars.columnWidthOverrides }
-  //     })
-  //   }
-
-  //   tableVars.isResizingColumn = false
-  //   tableVars.resizingColumnName = null
-  //   tableVars.resizeNeighborColumnName = null
-  //   setPointerStyle(false, 'default')
-  //   clearGroups()
-  //   rebuildGroups()
-  // }
-}
+// handleGlobalMouseMove 和 handleGlobalMouseUp 已移至 stage-handler.ts
 
 /**
  * 全局窗口尺寸变化处理
@@ -200,13 +89,40 @@ const cleanupStageListeners = () => {
 
 
 watch(props, () => {
-  Object.entries(props).forEach(([key, value]) => {
-    if (key in staticParams && value !== staticParams[key as keyof typeof staticParams]) {
-      //  TODO: 这里需要优化，不能直接赋值，需要通过代理来实现 
-      // @ts-ignore
-      staticParams[key as keyof typeof staticParams] = value
-    }
-  })
+  // 使用类型安全的属性赋值
+  if (props.title !== undefined) staticParams.title = props.title
+  if (props.data !== undefined) staticParams.data = props.data
+  if (props.xAxisFields !== undefined) staticParams.xAxisFields = props.xAxisFields
+  if (props.yAxisFields !== undefined) staticParams.yAxisFields = props.yAxisFields
+  if (props.enableSummary !== undefined) staticParams.enableSummary = props.enableSummary
+  if (props.bufferRows !== undefined) staticParams.bufferRows = props.bufferRows
+  if (props.minAutoColWidth !== undefined) staticParams.minAutoColWidth = props.minAutoColWidth
+  if (props.highlightCellBackground !== undefined) staticParams.highlightCellBackground = props.highlightCellBackground
+  if (props.highlightRowBackground !== undefined) staticParams.highlightRowBackground = props.highlightRowBackground
+  if (props.highlightColBackground !== undefined) staticParams.highlightColBackground = props.highlightColBackground
+  if (props.headerRowHeight !== undefined) staticParams.headerRowHeight = props.headerRowHeight
+  if (props.headerBackground !== undefined) staticParams.headerBackground = props.headerBackground
+  if (props.headerTextColor !== undefined) staticParams.headerTextColor = props.headerTextColor
+  if (props.headerFontFamily !== undefined) staticParams.headerFontFamily = props.headerFontFamily
+  if (props.headerFontSize !== undefined) staticParams.headerFontSize = props.headerFontSize
+  if (props.bodyRowHeight !== undefined) staticParams.bodyRowHeight = props.bodyRowHeight
+  if (props.bodyBackgroundOdd !== undefined) staticParams.bodyBackgroundOdd = props.bodyBackgroundOdd
+  if (props.bodyBackgroundEven !== undefined) staticParams.bodyBackgroundEven = props.bodyBackgroundEven
+  if (props.bodyTextColor !== undefined) staticParams.bodyTextColor = props.bodyTextColor
+  if (props.bodyFontFamily !== undefined) staticParams.bodyFontFamily = props.bodyFontFamily
+  if (props.bodyFontSize !== undefined) staticParams.bodyFontSize = props.bodyFontSize
+  if (props.borderColor !== undefined) staticParams.borderColor = props.borderColor
+  if (props.summaryRowHeight !== undefined) staticParams.summaryRowHeight = props.summaryRowHeight
+  if (props.summaryBackground !== undefined) staticParams.summaryBackground = props.summaryBackground
+  if (props.summaryTextColor !== undefined) staticParams.summaryTextColor = props.summaryTextColor
+  if (props.summaryFontFamily !== undefined) staticParams.summaryFontFamily = props.summaryFontFamily
+  if (props.summaryFontSize !== undefined) staticParams.summaryFontSize = props.summaryFontSize
+  if (props.scrollbarSize !== undefined) staticParams.scrollbarSize = props.scrollbarSize
+  if (props.scrollbarBackground !== undefined) staticParams.scrollbarBackground = props.scrollbarBackground
+  if (props.scrollbarThumbBackground !== undefined) staticParams.scrollbarThumbBackground = props.scrollbarThumbBackground
+  if (props.scrollbarThumbHoverBackground !== undefined) staticParams.scrollbarThumbHoverBackground = props.scrollbarThumbHoverBackground
+  if (props.sortActiveColor !== undefined) staticParams.sortActiveColor = props.sortActiveColor
+  if (props.spanMethod !== undefined) staticParams.spanMethod = props.spanMethod
 }, {
   deep: true,
   immediate: true
@@ -322,8 +238,6 @@ watch(
  */
 watch(
   () => [
-    // props.enableRowHoverHighlight, // 注释以提升性能
-    // props.enableColHoverHighlight, // 注释以提升性能
     props.sortActiveColor,
     props.highlightCellBackground
   ],
@@ -362,37 +276,7 @@ watch(
 
 
 
-/**
- * 处理滚轮事件
- * @param {WheelEvent} e - 滚轮事件
- */
-const handleMouseWheel = (e: WheelEvent) => {
-  e.preventDefault()
-
-  if (stageVars.stage) stageVars.stage.setPointersPositions(e)
-
-  const hasDeltaX = Math.abs(e.deltaX) > 0
-  const hasDeltaY = Math.abs(e.deltaY) > 0
-
-  // 兼容 Shift + 滚轮用于横向滚动（常见于鼠标）
-  if (e.shiftKey && !hasDeltaX && hasDeltaY) {
-    updateHorizontalScroll(e.deltaY)
-    return
-  }
-
-  // 实现滚动方向锁定：比较 deltaY 和 deltaX 的绝对值，只执行主要方向的滚动
-  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-    // 主要是上下滚动
-    if (hasDeltaY) {
-      updateVerticalScroll(e.deltaY)
-    }
-  } else {
-    // 主要是左右滚动
-    if (hasDeltaX) {
-      updateHorizontalScroll(e.deltaX)
-    }
-  }
-}
+// handleMouseWheel 已移至 scrollbar-handler.ts
 
 /**
  * 初始化滚轮事件监听器

@@ -49,16 +49,6 @@ export const tableProps = {
    * 最小自动列宽
    */
   minAutoColWidth: { type: Number, default: 100 },
-
-  // /**
-  //  * 是否启用行高亮 - 注释以提升性能
-  //  */
-  // enableRowHoverHighlight: { type: Boolean, default: false },
-  // /**
-  //  * 是否启用列高亮 - 注释以提升性能
-  //  */
-  // enableColHoverHighlight: { type: Boolean, default: false },
-
   /**
    * 合并单元格方法
    * @param args 参数
