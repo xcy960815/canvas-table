@@ -116,3 +116,405 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
     tempText.destroy()
     return result || '...'
 }
+
+// ============================================================================
+// 绘制相关工具函数 (Drawing Utilities)
+// ============================================================================
+
+/**
+ * 对象池 属性
+ */
+export interface KonvaNodePools {
+    /**
+     * 单元格矩形
+     */
+    cellRects: Konva.Rect[]
+    /**
+     * 单元格文本
+     */
+    cellTexts: Konva.Text[]
+}
+
+/**
+ * 绘制文本配置接口
+ */
+export interface DrawTextConfig {
+    pools: KonvaNodePools
+    name: string
+    text: string
+    x: number
+    y: number
+    fontSize: number
+    fontFamily: string
+    fill: string
+    align?: 'left' | 'center' | 'right'
+    verticalAlign?: 'top' | 'middle' | 'bottom'
+    cellHeight?: number
+    useGetTextX?: boolean
+    opacity?: number
+    offsetX?: number
+    offsetY?: number
+}
+
+/**
+ * 绘制矩形配置接口
+ */
+export interface DrawRectConfig {
+    pools: KonvaNodePools
+    name: string
+    x: number
+    y: number
+    width: number
+    height: number
+    fill?: string
+    stroke?: string
+    strokeWidth?: number
+    cornerRadius?: number
+    listening?: boolean
+}
+
+/**
+ * 绘制文本
+ * @param {DrawTextConfig} config - 绘制文本配置
+ * @returns {Konva.Text} 文本节点
+ */
+export const drawUnifiedText = (config: DrawTextConfig) => {
+    const {
+        pools,
+        name,
+        text,
+        x,
+        y,
+        fontSize,
+        fontFamily,
+        fill,
+        align = 'left',
+        verticalAlign = 'middle',
+        cellHeight,
+        useGetTextX = false,
+        opacity = 1,
+        offsetX = 0,
+        offsetY = 0
+    } = config
+
+    const textNode = getFromPool(pools.cellTexts, () => new Konva.Text({ listening: false, name }))
+
+    textNode.name(name)
+    textNode.setAttr('row-index', null)
+    textNode.setAttr('col-index', null)
+
+    if (useGetTextX) {
+        textNode.x(getTextX(x))
+        textNode.y(cellHeight ? y + cellHeight / 2 : y)
+    } else {
+        textNode.x(x)
+        textNode.y(y)
+    }
+
+    textNode.text(text)
+    textNode.fontSize(fontSize)
+    textNode.fontFamily(fontFamily)
+    textNode.fill(fill)
+    textNode.opacity(opacity)
+    textNode.align(align)
+    textNode.verticalAlign(verticalAlign)
+
+    if (align === 'center' && verticalAlign === 'middle') {
+        const w = textNode.width()
+        const h = textNode.height()
+        textNode.offset({ x: w / 2, y: h / 2 })
+    } else if (useGetTextX && verticalAlign === 'middle') {
+        textNode.offsetY(textNode.height() / 2)
+    }
+
+    if (offsetX || offsetY) {
+        const prev = textNode.offset()
+        textNode.offset({ x: (prev.x || 0) + (offsetX || 0), y: (prev.y || 0) + (offsetY || 0) })
+    }
+
+    return textNode
+}
+
+/**
+ * 绘制矩形
+ * @param {DrawRectConfig} config - 绘制矩形配置
+ * @returns {Konva.Rect} 矩形节点
+ */
+export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
+    const { pools, name, x, y, width, height, fill, stroke, strokeWidth = 1, cornerRadius = 0, listening = true } = config
+
+    const rect: Konva.Rect = getFromPool<Konva.Rect>(pools.cellRects, () => new Konva.Rect({ listening, name }))
+    rect.name(name)
+    rect.off('click')
+    rect.off('mouseenter')
+    rect.off('mouseleave')
+    rect.x(x)
+    rect.y(y)
+    rect.width(width)
+    rect.height(height)
+    if (fill !== undefined) rect.fill(fill)
+    if (stroke !== undefined) rect.stroke(stroke)
+    rect.strokeWidth(strokeWidth)
+    if (cornerRadius) rect.cornerRadius(cornerRadius)
+    return rect
+}
+
+/**
+ * 创建统一单元格矩形 - 支持 Header 和 Summary
+ * @param {Object} config - 配置参数
+ * @param {string} config.name - 节点名称
+ * @param {number} config.x - x坐标
+ * @param {number} config.y - y坐标
+ * @param {number} config.width - 宽度
+ * @param {number} config.height - 高度
+ * @param {string} config.fill - 填充色
+ * @param {string} config.stroke - 边框色
+ * @param {number} config.strokeWidth - 边框宽度
+ * @param {boolean} config.listening - 是否监听事件
+ * @param {Konva.Group} config.group - 父组
+ * @returns {Konva.Rect} 矩形节点
+ */
+export const createUnifiedCellRect = (config: {
+    name: string
+    x: number
+    y: number
+    width: number
+    height: number
+    fill: string
+    stroke: string
+    strokeWidth: number
+    listening: boolean
+    group: Konva.Group
+}) => {
+    const rect = new Konva.Rect({
+        name: config.name,
+        x: config.x,
+        y: config.y,
+        width: config.width,
+        height: config.height,
+        fill: config.fill,
+        stroke: config.stroke,
+        strokeWidth: config.strokeWidth,
+        listening: config.listening
+    })
+
+    config.group.add(rect)
+    return rect
+}
+
+/**
+ * 创建统一单元格文本 - 支持 Header 和 Summary
+ * @param {Object} config - 配置参数
+ * @param {string} config.name - 节点名称
+ * @param {string} config.text - 文本内容
+ * @param {number} config.x - x坐标
+ * @param {number} config.y - y坐标
+ * @param {number} config.width - 宽度
+ * @param {number} config.height - 高度
+ * @param {number} config.fontSize - 字体大小
+ * @param {string} config.fontFamily - 字体族
+ * @param {string} config.fill - 文本颜色
+ * @param {string} config.align - 水平对齐
+ * @param {string} config.verticalAlign - 垂直对齐
+ * @param {boolean} config.listening - 是否监听事件
+ * @param {Konva.Group} config.group - 父组
+ * @returns {Konva.Text} 文本节点
+ */
+export const createUnifiedCellText = (config: {
+    name: string
+    text: string
+    x: number
+    y: number
+    width: number
+    height: number
+    fontSize: number
+    fontFamily: string
+    fill: string
+    align: string
+    verticalAlign: string
+    listening: boolean
+    group: Konva.Group
+}) => {
+    const textNode = new Konva.Text({
+        name: config.name,
+        text: config.text,
+        x: config.x,
+        y: config.y,
+        fontSize: config.fontSize,
+        fontFamily: config.fontFamily,
+        fill: config.fill,
+        align: config.align,
+        verticalAlign: config.verticalAlign,
+        width: config.width,
+        height: config.height,
+        listening: config.listening
+    })
+
+    // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
+    if (config.align === 'center') {
+        textNode.x(config.x + config.width / 2)
+        textNode.offsetX(textNode.width() / 2)
+    } else if (config.align === 'right') {
+        textNode.x(config.x + config.width - 8)
+    } else {
+        textNode.x(config.x + 8)
+    }
+
+    // 垂直居中
+    if (config.verticalAlign === 'middle') {
+        textNode.y(config.y + config.height / 2)
+        textNode.offsetY(textNode.height() / 2)
+    }
+
+    config.group.add(textNode)
+    return textNode
+}
+
+// ============================================================================
+// 计算相关工具函数 (Calculation Utilities)
+// ============================================================================
+
+/**
+ * 计算单元格合并信息
+ * @param {Function} spanMethod - 合并方法
+ * @param {any} row - 行数据
+ * @param {any} columnOption - 列配置
+ * @param {number} rowIndex - 行索引
+ * @param {number} globalColIndex - 全局列索引
+ * @returns {Object} 合并信息
+ */
+export const calculateCellSpan = (
+    spanMethod: Function,
+    row: any,
+    columnOption: any,
+    rowIndex: number,
+    globalColIndex: number
+) => {
+    const res = spanMethod({ row, column: columnOption, rowIndex, colIndex: globalColIndex })
+    let spanRow = 1
+    let spanCol = 1
+
+    if (Array.isArray(res)) {
+        spanRow = Math.max(0, Number(res[0]) || 0)
+        spanCol = Math.max(0, Number(res[1]) || 0)
+    } else if (res && typeof res === 'object') {
+        spanRow = Math.max(0, Number(res.rowspan) || 0)
+        spanCol = Math.max(0, Number(res.colspan) || 0)
+    }
+
+    // 只要任一维度为 0，即视为被合并覆盖（与常见表格合并语义一致）
+    const coveredBySpanMethod = spanRow === 0 || spanCol === 0
+
+    return { spanRow, spanCol, coveredBySpanMethod }
+}
+
+/**
+ * 计算合并单元格的总宽度
+ * @param {number} spanCol - 跨列数
+ * @param {number} colIndex - 列索引
+ * @param {Array<any>} bodyCols - 列配置数组
+ * @param {number} columnWidth - 列宽度
+ * @returns {number} 合并单元格总宽度
+ */
+export const calculateMergedCellWidth = (
+    spanCol: number,
+    colIndex: number,
+    bodyCols: Array<any>,
+    columnWidth: number
+) => {
+    if (spanCol <= 1) return columnWidth
+
+    let totalWidth = 0
+    for (let i = 0; i < spanCol && colIndex + i < bodyCols.length; i++) {
+        const colInfo = bodyCols[colIndex + i]
+        totalWidth += colInfo.width || 0
+    }
+    return totalWidth
+}
+
+/**
+ * 获取单元格显示值
+ * @param {any} columnOption - 列配置
+ * @param {any} row - 行数据
+ * @param {number} rowIndex - 行索引
+ * @returns {string} 显示值
+ */
+export const getCellDisplayValue = (
+    columnOption: any,
+    row: any,
+    rowIndex: number
+) => {
+    const rawValue =
+        columnOption.columnName === '__index__'
+            ? String(rowIndex + 1)
+            : row && typeof row === 'object'
+                ? row[columnOption.columnName]
+                : undefined
+    return String(rawValue ?? '')
+}
+
+// ============================================================================
+// 节点管理相关工具函数 (Node Management Utilities)
+// ============================================================================
+
+/**
+ * 优化的节点回收 - 批量处理减少遍历次数
+ * @param {Konva.Group} bodyGroup - 分组
+ * @param {KonvaNodePools} pools - 对象池
+ * @returns {void}
+ */
+export const recoverKonvaNode = (bodyGroup: Konva.Group, pools: KonvaNodePools) => {
+    // 清空当前组，将对象返回池中
+    const children = bodyGroup.children.slice()
+    const textsToRecover: Konva.Text[] = []
+    const rectsToRecover: Konva.Rect[] = []
+
+    // 分类收集需要回收的节点
+    children.forEach((child: Konva.Node) => {
+        if (child instanceof Konva.Text) {
+            const name = child.name()
+            // 处理合并单元格和普通单元格文本节点回收
+            if (name === 'merged-cell-text' || name === 'cell-text') {
+                textsToRecover.push(child)
+            }
+        } else if (child instanceof Konva.Rect) {
+            const name = child.name()
+            // 处理合并单元格和普通单元格矩形节点回收
+            if (name === 'merged-cell-rect' || name === 'cell-rect') {
+                rectsToRecover.push(child)
+            }
+        }
+    })
+
+    // 批量回收
+    textsToRecover.forEach((text) => returnToPool(pools.cellTexts, text))
+    rectsToRecover.forEach((rect) => returnToPool(pools.cellRects, rect))
+}
+
+// ============================================================================
+// 汇总相关工具函数 (Summary Utilities)
+// ============================================================================
+
+/**
+ * 汇总规则的中文标签
+ * @param {string} rule - 汇总规则
+ * @returns {string} 汇总规则的中文标签
+ */
+export const getRuleLabel = (rule: string) => {
+    switch (rule) {
+        case 'max':
+            return '最大'
+        case 'min':
+            return '最小'
+        case 'avg':
+            return '平均'
+        case 'sum':
+            return '求和'
+        case 'filled':
+            return '已填写'
+        case 'nofilled':
+            return '未填写'
+        default:
+            return ''
+    }
+}
