@@ -1649,21 +1649,22 @@ const drawSummaryPart = (
 
   let x = 0
   summaryCols.forEach((col) => {
-    // 直接创建汇总行矩形，不使用对象池
-    const summaryCellRect = new Konva.Rect({
+    const colWidth = col.width || 0
+    
+    // 使用统一函数创建汇总行矩形
+    const summaryCellRect = createUnifiedCellRect({
       name: 'summary-cell-rect',
       x,
       y: 0,
-      width: col.width || 0,
+      width: colWidth,
       height: summaryRowHeight,
       fill: summaryBackground,
       stroke: borderColor,
       strokeWidth: 1,
-      listening: true
+      listening: true,
+      group: summaryGroup
     })
-    summaryGroup.add(summaryCellRect)
 
-    const colWidth = col.width || 0
     const textMaxWidth = colWidth - 16
 
     // 先显示占位文本，然后异步更新
@@ -1671,32 +1672,22 @@ const drawSummaryPart = (
     const placeholderText = rule === 'nodisplay' ? '不显示' : '计算中...'
     const truncatedTitle = truncateText(placeholderText, textMaxWidth, props.summaryFontSize, summaryFontFamily)
     
-    // 直接创建汇总行文本，不使用对象池
-    const summaryCellText = new Konva.Text({
+    // 使用统一函数创建汇总行文本
+    const summaryCellText = createUnifiedCellText({
       name: 'summary-cell-text',
       text: truncatedTitle,
       x,
       y: 0,
+      width: colWidth,
+      height: summaryRowHeight,
       fontSize,
       fontFamily: summaryFontFamily,
       fill: summaryTextColor,
       align: col.align || 'left',
       verticalAlign: 'middle',
-      width: colWidth,
-      height: summaryRowHeight
+      listening: false,
+      group: summaryGroup
     })
-    
-    // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
-    if (col.align === 'center') {
-      summaryCellText.x(x + colWidth / 2)
-      summaryCellText.offsetX(summaryCellText.width() / 2)
-    } else if (col.align === 'right') {
-      summaryCellText.x(x + colWidth - 8)
-    } else {
-      summaryCellText.x(x + 8)
-    }
-    
-    summaryGroup.add(summaryCellText)
 
     // 异步计算汇总值并更新文本
     if (rule !== 'nodisplay') {
@@ -2167,33 +2158,117 @@ const createColumnResizer = (
 
 
 /**
- * 创建表头单元格矩形 - 添加排序功能
- * @param {number} x - 列的x坐标
- * @param {number} y - 列的y坐标
- * @param {number} width - 列的宽度
- * @param {number} height - 列的高度
- * @param {Konva.Group} headerGroup - 表头组
- * @returns {Konva.Rect} 表头单元格矩形
+ * 创建统一单元格矩形 - 支持 Header 和 Summary
+ * @param {Object} config - 配置参数
+ * @param {string} config.name - 节点名称
+ * @param {number} config.x - x坐标
+ * @param {number} config.y - y坐标
+ * @param {number} config.width - 宽度
+ * @param {number} config.height - 高度
+ * @param {string} config.fill - 填充色
+ * @param {string} config.stroke - 边框色
+ * @param {number} config.strokeWidth - 边框宽度
+ * @param {boolean} config.listening - 是否监听事件
+ * @param {Konva.Group} config.group - 父组
+ * @returns {Konva.Rect} 矩形节点
  */
-const createHeaderCellRect = (x: number, y: number, width: number, height: number, headerGroup: Konva.Group) => {
-  // 直接创建表头矩形，不使用对象池（参考汇总节点的实现方式）
+const createUnifiedCellRect = (config: {
+  name: string
+  x: number
+  y: number
+  width: number
+  height: number
+  fill: string
+  stroke: string
+  strokeWidth: number
+  listening: boolean
+  group: Konva.Group
+}) => {
   const rect = new Konva.Rect({
-    name: 'header-cell-rect',
-    x,
-    y,
-    width,
-    height,
-    fill: props.headerBackground,
-    stroke: props.borderColor,
-    strokeWidth: 1,
-    listening: false
+    name: config.name,
+    x: config.x,
+    y: config.y,
+    width: config.width,
+    height: config.height,
+    fill: config.fill,
+    stroke: config.stroke,
+    strokeWidth: config.strokeWidth,
+    listening: config.listening
   })
 
-  headerGroup.add(rect)
-
+  config.group.add(rect)
   return rect
 }
 
+
+
+/**
+ * 创建统一单元格文本 - 支持 Header 和 Summary
+ * @param {Object} config - 配置参数
+ * @param {string} config.name - 节点名称
+ * @param {string} config.text - 文本内容
+ * @param {number} config.x - x坐标
+ * @param {number} config.y - y坐标
+ * @param {number} config.width - 宽度
+ * @param {number} config.height - 高度
+ * @param {number} config.fontSize - 字体大小
+ * @param {string} config.fontFamily - 字体族
+ * @param {string} config.fill - 文本颜色
+ * @param {string} config.align - 水平对齐
+ * @param {string} config.verticalAlign - 垂直对齐
+ * @param {boolean} config.listening - 是否监听事件
+ * @param {Konva.Group} config.group - 父组
+ * @returns {Konva.Text} 文本节点
+ */
+const createUnifiedCellText = (config: {
+  name: string
+  text: string
+  x: number
+  y: number
+  width: number
+  height: number
+  fontSize: number
+  fontFamily: string
+  fill: string
+  align: string
+  verticalAlign: string
+  listening: boolean
+  group: Konva.Group
+}) => {
+  const textNode = new Konva.Text({
+    name: config.name,
+    text: config.text,
+    x: config.x,
+    y: config.y,
+    fontSize: config.fontSize,
+    fontFamily: config.fontFamily,
+    fill: config.fill,
+    align: config.align,
+    verticalAlign: config.verticalAlign,
+    width: config.width,
+    height: config.height,
+    listening: config.listening
+  })
+
+  // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
+  if (config.align === 'center') {
+    textNode.x(config.x + config.width / 2)
+    textNode.offsetX(textNode.width() / 2)
+  } else if (config.align === 'right') {
+    textNode.x(config.x + config.width - 8)
+  } else {
+    textNode.x(config.x + 8)
+  }
+
+  // 垂直居中
+  if (config.verticalAlign === 'middle') {
+    textNode.y(config.y + config.height / 2)
+    textNode.offsetY(textNode.height() / 2)
+  }
+
+  config.group.add(textNode)
+  return textNode
+}
 
 /**
  * 创建表头文本 - 添加排序支持
@@ -2226,41 +2301,21 @@ const createHeaderCellText = (
     props.headerFontFamily
   )
 
-  // 直接创建表头文本，不使用对象池（参考汇总节点的实现方式）
-  const headerText = new Konva.Text({
+  return createUnifiedCellText({
     name: 'header-cell-text',
     text,
     x,
     y,
+    width,
+    height,
     fontSize: props.headerFontSize,
     fontFamily: props.headerFontFamily,
     fill: props.headerTextColor,
     align: columnOption.align || 'left',
     verticalAlign: columnOption.verticalAlign || 'middle',
-    width: width,
-    height: height,
-    listening: false
+    listening: false,
+    group: headerGroup
   })
-
-  // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
-  if (columnOption.align === 'center') {
-    headerText.x(x + width / 2)
-    headerText.offsetX(headerText.width() / 2)
-  } else if (columnOption.align === 'right') {
-    headerText.x(x + width - 8)
-  } else {
-    headerText.x(x + 8)
-  }
-
-  // 垂直居中
-  if (columnOption.verticalAlign === 'middle') {
-    headerText.y(y + height / 2)
-    headerText.offsetY(headerText.height() / 2)
-  }
-
-  headerGroup.add(headerText)
-
-  return headerText
 }
 
 
@@ -2286,7 +2341,18 @@ const drawHeaderPart = (
       continue
     }
     // 创建背景矩形
-    createHeaderCellRect(x, 0, columnWidth, props.headerRowHeight, headerGroup)
+    createUnifiedCellRect({
+      name: 'header-cell-rect',
+      x,
+      y: 0,
+      width: columnWidth,
+      height: props.headerRowHeight,
+      fill: props.headerBackground,
+      stroke: props.borderColor,
+      strokeWidth: 1,
+      listening: false,
+      group: headerGroup
+    })
 
     // 创建文本
     createHeaderCellText(columnOption, x, 0, columnWidth, props.headerRowHeight, headerGroup)
