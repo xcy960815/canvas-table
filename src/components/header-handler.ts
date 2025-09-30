@@ -1,4 +1,4 @@
-import { reactive, ref, type Ref } from 'vue'
+import { reactive, ref } from 'vue'
 import Konva from 'konva'
 import { stageVars, clearGroups } from './stage-handler'
 export type Prettify<T> = {
@@ -15,22 +15,15 @@ import {
     createUnifiedCellText,
 } from './utils'
 
-interface HeaderHandlerParams {
-    tableData: Ref<ChartDataDao.ChartData[], ChartDataDao.ChartData[]>
-}
-
 interface HeaderVars {
     headerLayer: Konva.Layer | null,
     leftHeaderGroup: Konva.Group | null,
     centerHeaderGroup: Konva.Group | null,
     rightHeaderGroup: Konva.Group | null,
-    // 列宽拖拽相关变量
     isResizingColumn: boolean
-    // resizingColumnName: string | null
-    // resizeStartX: number
-    // resizeStartWidth: number
-    // resizeNeighborColumnName: string | null
-    // resizeNeighborStartWidth: number
+    resizingColumnName: string | null
+    resizeStartX: number
+    resizeStartWidth: number
 }
 
 interface SortColumn {
@@ -58,7 +51,7 @@ const COLORS = {
 /**
  * 原始数据存储 - 不被排序或过滤修改
  */
-const originalData = ref<Array<ChartDataVo.ChartData>>([])
+let originalData: Array<ChartDataVo.ChartData> = []
 
 /**
  * 过滤状态：列名 -> 选中的离散值集合 - 单独的响应式变量
@@ -90,7 +83,13 @@ export const headerVars: HeaderVars = {
     /**
      * 列宽拖拽相关变量
      */
-    isResizingColumn: false
+    isResizingColumn: false,
+
+    resizingColumnName: null,
+
+    resizeStartX: 0,
+    
+    resizeStartWidth: 0
 }
 
 /**
@@ -108,13 +107,11 @@ export const createHeaderRightGroups = (x: number, y: number) => createGroup('he
  * @returns {void}
  */
 export const handleTableData = () => {
-
-    const data = staticParams.data
     // 保存原始数据
-    originalData.value = data.filter((row) => row && typeof row === 'object')
+    originalData = staticParams.data.filter((row) => row && typeof row === 'object')
 
     // 开始处理数据
-    let processedData = [...originalData.value]
+    let processedData = [...originalData]
 
     // 应用过滤
     const filterKeys = Object.keys(filterState).filter((k) => filterState[k] && filterState[k].size > 0)
@@ -160,9 +157,6 @@ export const handleTableData = () => {
     tableData.value = processedData
 }
 
-
-
-
 /**
  * 获取列的排序状态
  * @param {string} columnName - 列名
@@ -182,13 +176,10 @@ const getColumnSortOrder = (columnName: string): 'asc' | 'desc' | null => {
  * @param {number} width - 列的宽度
  * @param {number} height - 列的高度
  * @param {Konva.Group} headerGroup - 表头组
- * @returns {Konva.Shape} 过滤图标
  */
 const createFilterIcon = (
     col: GroupStore.GroupOption | DimensionStore.DimensionOption,
     x: number,
-    width: number,
-    height: number,
     headerGroup: Konva.Group
 ) => {
     // 检查列是否可过滤
@@ -198,8 +189,8 @@ const createFilterIcon = (
 
     const hasFilter = !!(filterState[col.columnName] && filterState[col.columnName].size > 0)
     const filterColor = hasFilter ? staticParams.sortActiveColor : COLORS.INACTIVE
-    const filterX = x + width - LAYOUT_CONSTANTS.FILTER_ICON_OFFSET
-    const centerY = height / 2
+    const filterX = x + (col.width || 0) - LAYOUT_CONSTANTS.FILTER_ICON_OFFSET
+    const centerY = staticParams.headerRowHeight / 2
     const iconSize = LAYOUT_CONSTANTS.FILTER_ICON_SIZE
 
     const filterIcon = new Konva.Shape({
@@ -242,15 +233,12 @@ const createFilterIcon = (
     })
 
     headerGroup.add(filterIcon)
-    return filterIcon
 }
 
 /**
  * 创建列宽调整手柄
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
- * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} headerCols - 表头列配置
  * @param {number} x - x坐标
- * @param {number} colIndex - 列索引
  * @param {Konva.Group} headerGroup - 表头组
  */
 const createColumnResizer = (
@@ -259,18 +247,22 @@ const createColumnResizer = (
     headerGroup: Konva.Group
 ) => {
     const resizer = new Konva.Rect({
-        x: x + (columnOption.width || 0) - LAYOUT_CONSTANTS.RESIZER_WIDTH / 2,
+        x: x + (columnOption.width || 0) + LAYOUT_CONSTANTS.RESIZER_WIDTH / 2,
         y: 0,
         width: LAYOUT_CONSTANTS.RESIZER_WIDTH,
         height: staticParams.headerRowHeight,
-        fill: 'transparent',
+        fill: 'red',
         listening: true,
         draggable: false,
         name: `col-resizer-${columnOption.columnName}`
     })
 
     // 添加鼠标交互
-    resizer.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'col-resize'))
+    resizer.on('mouseenter', () => {
+        if (!headerVars.isResizingColumn) {
+            setPointerStyle(stageVars.stage, true, 'col-resize')
+        }
+    })
     resizer.on('mouseleave', () => {
         if (!headerVars.isResizingColumn) {
             setPointerStyle(stageVars.stage, false, 'default')
@@ -279,24 +271,13 @@ const createColumnResizer = (
 
     headerGroup.add(resizer)
 
-    //   resizer.on('mousedown', (evt) => {
-    //     tableVars.isResizingColumn = true
-    //     tableVars.resizingColumnName = columnOption.columnName
-    //     tableVars.resizeStartX = evt.evt.clientX
-    //     tableVars.resizeStartWidth = columnOption.width || 0
-
-    //     // 设置邻近列信息（右侧列）
-    //     const neighborColumn = headerCols[colIndex + 1]
-    //     if (neighborColumn) {
-    //       tableVars.resizeNeighborColumnName = neighborColumn.columnName
-    //       tableVars.resizeNeighborStartWidth = neighborColumn.width || 0
-    //     } else {
-    //       tableVars.resizeNeighborColumnName = null
-    //       tableVars.resizeNeighborStartWidth = 0
-    //     }
-
-    //     setPointerStyle(true, 'col-resize')
-    //   })
+    resizer.on('mousedown', (evt:Konva.KonvaEventObject<MouseEvent>) => {
+        headerVars.isResizingColumn = true
+        headerVars.resizingColumnName = columnOption.columnName
+        headerVars.resizeStartX = evt.evt.clientX
+        headerVars.resizeStartWidth = columnOption.width || 0
+        setPointerStyle(stageVars.stage, true, 'col-resize')
+    })
 }
 /**
  * 创建排序指示器 - 上下两个箭头
@@ -308,12 +289,9 @@ const createColumnResizer = (
  * @param {Konva.Group} headerGroup - 表头组
  * @returns {Konva.Path} 排序指示器
  */
-
 const createSortIcon = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     x: number,
-    width: number,
-    height: number,
     headerGroup: Konva.Group
 ) => {
     // 检查列是否可排序
@@ -322,11 +300,13 @@ const createSortIcon = (
     const sortOrder = getColumnSortOrder(columnOption.columnName)
 
     // 箭头的基础位置
-    const arrowX = x + width - LAYOUT_CONSTANTS.SORT_ARROW_OFFSET
-    const centerY = height / 2
+    const arrowX = x + (columnOption.width || 0) - LAYOUT_CONSTANTS.SORT_ARROW_OFFSET
+
+    const centerY = staticParams.headerRowHeight / 2
 
     // 上箭头（升序）- 指向上方的三角形
     const upArrowY = centerY - LAYOUT_CONSTANTS.ARROW_GAP / 2 - LAYOUT_CONSTANTS.ARROW_SIZE
+
     const upArrowPath = `M ${arrowX} ${upArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE / 2} ${upArrowY} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE} ${upArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} Z`
 
     // 下箭头（降序）- 指向下方的三角形
@@ -343,7 +323,7 @@ const createSortIcon = (
     upArrow.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'pointer'))
     upArrow.on('mouseleave', () => setPointerStyle(stageVars.stage, false, 'default'))
     upArrow.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
-        handleSortAction(columnOption, 'asc', false)
+        handleSortAction(columnOption, 'asc')
     })
 
     // 创建下箭头
@@ -355,8 +335,8 @@ const createSortIcon = (
 
     downArrow.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'pointer'))
     downArrow.on('mouseleave', () => setPointerStyle(stageVars.stage, false, 'default'))
-    downArrow.on('click', () => {
-        handleSortAction(columnOption, 'desc', false)
+    downArrow.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
+        handleSortAction(columnOption, 'desc')
     })
 
     headerGroup.add(upArrow)
@@ -368,22 +348,15 @@ const createSortIcon = (
  * 处理排序逻辑
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
  * @param {'asc' | 'desc'} order - 排序方向
- * @param {boolean} hasModifier - 是否有修饰键
  */
 const handleSortAction = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
-    order: 'asc' | 'desc',
-    hasModifier: boolean
+    order: 'asc' | 'desc'
 ) => {
     const currentIndex = sortColumns.value.findIndex((s) => s.columnName === columnOption.columnName)
 
-    if (hasModifier) {
-        // 多列排序模式
-        handleMultiColumnSort(columnOption, order, currentIndex)
-    } else {
-        // 单列排序模式
-        handleSingleColumnSort(columnOption, order, currentIndex)
-    }
+    // 多列排序模式
+    handleMultiColumnSort(columnOption, order, currentIndex)
 
     handleTableData()
     clearGroups()
@@ -394,25 +367,20 @@ const handleSortAction = (
  * 创建表头文本 - 添加排序支持
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列
  * @param {number} x - 列的x坐标
- * @param {number} y - 列的y坐标
  * @param {number} width - 列的宽度
  * @param {number} height - 列的高度
  * @param {Konva.Group} headerGroup - 表头组
- * @returns {Konva.Text} 表头文本
  */
 const createHeaderCellText = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     x: number,
-    y: number,
-    width: number,
-    height: number,
     headerGroup: Konva.Group
 ) => {
     const sortOrder = getColumnSortOrder(columnOption.columnName)
     const hasSort = sortOrder !== null
 
     // 如果有排序，给文本留出箭头空间
-    const maxTextWidth = hasSort ? width - 32 : width - 16
+    const maxTextWidth = hasSort ? (columnOption.width || 0) - 32 : (columnOption.width || 0) - 16
 
     const text = truncateText(
         columnOption.displayName || columnOption.columnName,
@@ -425,9 +393,9 @@ const createHeaderCellText = (
         name: 'header-cell-text',
         text,
         x,
-        y,
-        width,
-        height,
+        y: 0,
+        width: columnOption.width || 0,
+        height: staticParams.headerRowHeight,
         fontSize: staticParams.headerFontSize,
         fontFamily: staticParams.headerFontFamily,
         fill: staticParams.headerTextColor,
@@ -438,28 +406,6 @@ const createHeaderCellText = (
     })
 }
 
-/**
- * 单列排序处理
- * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
- * @param {'asc' | 'desc'} order - 排序方向
- * @param {number} currentIndex - 当前索引
- */
-const handleSingleColumnSort = (
-    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
-    order: 'asc' | 'desc',
-    currentIndex: number
-) => {
-    if (currentIndex === -1) {
-        // 设置新的排序
-        sortColumns.value = [{ columnName: columnOption.columnName, order }]
-    } else if (sortColumns.value[currentIndex].order === order) {
-        // 取消排序
-        sortColumns.value = []
-    } else {
-        // 切换排序方向
-        sortColumns.value = [{ columnName: columnOption.columnName, order }]
-    }
-}
 
 /**
  * 多列排序处理
@@ -515,7 +461,7 @@ export const drawHeaderPart = (
             name: 'header-cell-rect',
             x,
             y: 0,
-            width: columnWidth,
+            width: columnOption.width || 0,
             height: staticParams.headerRowHeight,
             fill: staticParams.headerBackground,
             stroke: staticParams.borderColor,
@@ -525,13 +471,13 @@ export const drawHeaderPart = (
         })
 
         // 创建文本
-        createHeaderCellText(columnOption, x, 0, columnWidth, staticParams.headerRowHeight, headerGroup)
+        createHeaderCellText(columnOption, x, headerGroup)
 
         // 添加排序icon
-        createSortIcon(columnOption, x, columnWidth, staticParams.headerRowHeight, headerGroup)
+        createSortIcon(columnOption, x, headerGroup)
 
         // 添加过滤icon
-        createFilterIcon(columnOption, x, columnWidth, staticParams.headerRowHeight, headerGroup)
+        createFilterIcon(columnOption, x, headerGroup)
 
         // 添加列宽调整手柄
         createColumnResizer(columnOption, x, headerGroup)

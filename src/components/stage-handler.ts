@@ -131,7 +131,9 @@ export const initStage = () => {
 
     // 5. 滚动条组（根据滚动需求创建）
     const { maxScrollX, maxScrollY } = getScrollLimits()
-
+    console.log("maxScrollX",maxScrollX);
+    console.log("maxScrollY",maxScrollY);
+    
     if (maxScrollY > 0 && !scrollbarVars.verticalScrollbarGroup) {
         scrollbarVars.verticalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
@@ -436,7 +438,6 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
  */
 export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
     if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
-
     // 滚动条拖拽结束
     if (scrollbarVars.isDraggingVerticalThumb || scrollbarVars.isDraggingHorizontalThumb) {
         scrollbarVars.isDraggingVerticalThumb = false

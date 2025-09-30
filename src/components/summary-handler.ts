@@ -1,5 +1,5 @@
 import Konva from 'konva'
-import { ref, type Ref, type ExtractPropTypes, reactive } from 'vue'
+import { reactive } from 'vue'
 import { webworker } from '@/composables/useWebworker';
 import { createUnifiedCellRect, createUnifiedCellText, createGroup, getRuleLabel, truncateText } from "./utils"
 import { stageVars } from './stage-handler'
@@ -61,15 +61,10 @@ export const createSummaryLeftGroups = (x: number, y: number) => createGroup('su
 export const createSummaryCenterGroups = (x: number, y: number) => createGroup('summary', 'center', x, y)
 export const createSummaryRightGroups = (x: number, y: number) => createGroup('summary', 'right', x, y)
 
-
-
-
 /**
  * 汇总行选择状态：列名 -> 选中的规则 - 单独的响应式变量
  */
 const summaryState = reactive<Record<string, string>>({})
-
-
 
 /**
  * 计算某列的汇总显示值
