@@ -96,10 +96,10 @@ export const headerVars: HeaderVars = {
 /**
  * 创建Header组 - 快捷方法
  */
-export const createHeaderLeftGroups = (x: number, y: number) => createGroup('header', 'left', x, y)
-export const createHeaderCenterGroups = (x: number, y: number) => createGroup('header', 'center', x, y)
-export const createHeaderRightGroups = (x: number, y: number) => createGroup('header', 'right', x, y)
-
+export const createHeaderLeftGroup = (x: number, y: number) => createGroup('header', 'left', x, y)
+export const createHeaderCenterGroup = (x: number, y: number) => createGroup('header', 'center', x, y)
+export const createHeaderRightGroup = (x: number, y: number) => createGroup('header', 'right', x, y)
+export const createHeaderClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('header', 'center', x, y, { x, y, width, height })
 
 
 /**
@@ -333,7 +333,7 @@ const createSortIcon = (
 
     // 下箭头（降序）- 指向下方的三角形
     const downArrowY = centerY + LAYOUT_CONSTANTS.ARROW_GAP / 2
-    
+
     const downArrowPath = `M ${arrowX} ${downArrowY} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE / 2} ${downArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE} ${downArrowY} Z`
 
     // 创建上箭头

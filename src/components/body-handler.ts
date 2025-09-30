@@ -82,9 +82,12 @@ export const bodyVars: BodyVars = {
 }
 
 // 快捷方法 - 表体分组
-export const createBodyLeftGroups = (x: number, y: number) => createGroup('body', 'left', x, y)
-export const createBodyCenterGroups = (x: number, y: number) => createGroup('body', 'center', x, y)
-export const createBodyRightGroups = (x: number, y: number) => createGroup('body', 'right', x, y)
+export const createBodyLeftGroup = (x: number, y: number) => createGroup('body', 'left', x, y)
+export const createBodyCenterGroup = (x: number, y: number) => createGroup('body', 'center', x, y)
+export const createBodyRightGroup = (x: number, y: number) => createGroup('body', 'right', x, y)
+export const createLeftBodyClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('body', 'left', x, y, { x, y, width, height })
+export const createCenterBodyClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('body', 'center', x, y, { x, y, width, height })
+export const createRightBodyClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('body', 'right', x, y, { x, y, width, height })
 export const getSummaryRowHeight = () => (staticParams.enableSummary ? staticParams.summaryRowHeight : 0)
 
 /**

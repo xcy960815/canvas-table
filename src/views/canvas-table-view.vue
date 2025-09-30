@@ -110,8 +110,6 @@
       :y-axis-fields="yAxisFields" :data="data"
       :highlight-row-background="tableConfig.highlightRowBackground"
       :highlight-col-background="tableConfig.highlightColBackground" :span-method="spanMethod">
-      <!-- @cell-click="handleCellClick"
-      @cell-edit="handleCellEdit" -->
     </CanvasTable>
   </div>
 </template>

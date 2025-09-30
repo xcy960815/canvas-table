@@ -203,7 +203,6 @@ export const updateHorizontalScroll = (offsetX: number) => {
     const { maxScrollX } = getScrollLimits()
     const { leftWidth } = getSplitColumns()
     scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX + offsetX, 0, maxScrollX)
-
     const headerX = leftWidth - scrollbarVars.stageScrollX
     const centerX = -scrollbarVars.stageScrollX
 
@@ -230,11 +229,11 @@ export const updateVerticalScroll = (offsetY: number) => {
     if (!stageVars.stage || !bodyVars.leftBodyGroup || !bodyVars.centerBodyGroup || !bodyVars.rightBodyGroup) return
 
     const actualOffsetY = offsetY
-
+    
+    
     const { maxScrollY } = getScrollLimits()
 
     scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxScrollY)
-
     const oldVisibleStart = bodyVars.visibleRowStart
 
     const oldVisibleEnd = bodyVars.visibleRowEnd
@@ -348,7 +347,7 @@ export const updateScrollbarPosition = () => {
  * 创建垂直滚动条
  * @returns {void}
  */
-export const drawVerticalScrollbar = () => {
+export const drawVerticalScrollbarPart = () => {
     
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
 
@@ -435,6 +434,7 @@ const setupHorizontalScrollbarEvents = () => {
     if (!scrollbarVars.horizontalScrollbarThumb || !stageVars.stage) return
     scrollbarVars.horizontalScrollbarThumb.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
         scrollbarVars.isDraggingHorizontalThumb = true
+        // 记录开始位置
         scrollbarVars.dragStartX = event.evt.clientX
         scrollbarVars.dragStartScrollX = scrollbarVars.stageScrollX
         setPointerStyle(stageVars.stage, true, 'grabbing')
@@ -463,7 +463,7 @@ const setupHorizontalScrollbarEvents = () => {
  * 创建水平滚动条
  * @returns {void}
  */
-export const drawHorizontalScrollbar = () => {
+export const drawHorizontalScrollbarPart = () => {
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
     const { width: stageWidth, height: stageHeight } = getStageAttr()
     const { maxScrollX, maxScrollY } = getScrollLimits()

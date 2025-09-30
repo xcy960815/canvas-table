@@ -1,11 +1,12 @@
 import Konva from 'konva'
-import { staticParams } from "./parameter"
-import { clearPool, constrainToRange, getTableContainer, createGroup, setPointerStyle } from './utils'
-import { createHeaderCenterGroups, createHeaderLeftGroups, createHeaderRightGroups, drawHeaderPart, headerVars } from './header-handler'
-import { bodyVars, calculateVisibleRows, getScrollLimits, getSplitColumns, createBodyCenterGroups, createBodyLeftGroups, createBodyRightGroups, drawBodyPart, getSummaryRowHeight } from './body-handler'
-import { summaryVars, createSummaryLeftGroups, createSummaryCenterGroups, createSummaryRightGroups, drawSummaryPart } from './summary-handler'
-import { drawHorizontalScrollbar, drawVerticalScrollbar, scrollbarVars, updateScrollPositions } from './scrollbar-handler'
-import { tableData } from './parameter'
+import { staticParams, tableData } from "./parameter"
+import { clearPool, constrainToRange, getTableContainer, setPointerStyle } from './utils'
+import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup, createHeaderClipGroup, drawHeaderPart, headerVars } from './header-handler'
+
+import { bodyVars, calculateVisibleRows, getScrollLimits, getSplitColumns, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart, getSummaryRowHeight } from './body-handler'
+import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart } from './summary-handler'
+import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions } from './scrollbar-handler'
+
 
 interface StageVars {
     stage: Konva.Stage | null,
@@ -185,8 +186,6 @@ export const destroyStage = () => {
     bodyVars.highlightRect = null
 }
 
-
-
 /**
  * 刷新表格（可选重置滚动位置）
  * @param {boolean} resetScroll - 是否重置滚动位置
@@ -230,19 +229,19 @@ export const rebuildGroups = () => {
 
 
     // 为中间表头也创建裁剪组，防止表头横向滚动时遮挡固定列
-    const centerHeaderClipGroup = createGroup('header', 'center', 0, 0, {
+    const headerClipGroup = createHeaderClipGroup(0, 0, {
         x: 0,
         y: 0,
         width: stageWidth - rightWidth - verticalScrollbarWidth,
         height: staticParams.headerRowHeight
     })
 
-    headerVars.headerLayer.add(centerHeaderClipGroup)
+    headerVars.headerLayer.add(headerClipGroup)
 
-    headerVars.leftHeaderGroup = createHeaderLeftGroups(0, 0)
-    headerVars.centerHeaderGroup = createHeaderCenterGroups(leftWidth, 0)
-    headerVars.rightHeaderGroup = createHeaderRightGroups(stageWidth - rightWidth - verticalScrollbarWidth, 0)
-    centerHeaderClipGroup.add(headerVars.centerHeaderGroup)
+    headerVars.leftHeaderGroup = createHeaderLeftGroup(0, 0)
+    headerVars.centerHeaderGroup = createHeaderCenterGroup(leftWidth, 0)
+    headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - rightWidth - verticalScrollbarWidth, 0)
+    headerClipGroup.add(headerVars.centerHeaderGroup)
 
     headerVars.headerLayer.add(headerVars.leftHeaderGroup, headerVars.rightHeaderGroup) // 固定表头必须在表头层，确保不被body层遮挡
 
@@ -254,7 +253,7 @@ export const rebuildGroups = () => {
     // 为中间可滚动区域创建裁剪组，防止遮挡固定列
     const bodyClipGroupHeight = stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - horizontalScrollbarHeight
     const bodyClipGroupWidth = stageWidth - leftWidth - rightWidth - verticalScrollbarWidth
-    const centerBodyClipGroup = createGroup('body', 'center', leftWidth, staticParams.headerRowHeight, {
+    const centerBodyClipGroup = createCenterBodyClipGroup(leftWidth, staticParams.headerRowHeight, {
         x: 0,
         y: 0,
         width: bodyClipGroupWidth,
@@ -263,22 +262,20 @@ export const rebuildGroups = () => {
 
     bodyVars.bodyLayer.add(centerBodyClipGroup)
 
-    bodyVars.leftBodyGroup = createBodyLeftGroups(0, 0) // 现在相对于裁剪组，初始位置为0
-    bodyVars.centerBodyGroup = createBodyCenterGroups(-scrollbarVars.stageScrollX, -scrollbarVars.stageScrollY)
-    bodyVars.rightBodyGroup = createBodyRightGroups(0, 0) // 现在相对于裁剪组，初始位置为0
+    bodyVars.leftBodyGroup = createBodyLeftGroup(0, 0) // 现在相对于裁剪组，初始位置为0
+    bodyVars.centerBodyGroup = createBodyCenterGroup(-scrollbarVars.stageScrollX, -scrollbarVars.stageScrollY)
+    bodyVars.rightBodyGroup = createBodyRightGroup(0, 0) // 现在相对于裁剪组，初始位置为0
 
     centerBodyClipGroup.add(bodyVars.centerBodyGroup)
 
-    const leftBodyClipGroup = createGroup('body', 'left', 0, staticParams.headerRowHeight, {
+    const leftBodyClipGroup = createLeftBodyClipGroup(0, staticParams.headerRowHeight, {
         x: 0,
         y: 0,
         width: leftWidth,
         height: bodyClipGroupHeight
     })
 
-    const rightBodyClipGroup = createGroup(
-        'body',
-        'right',
+    const rightBodyClipGroup = createRightBodyClipGroup(
         stageWidth - rightWidth - verticalScrollbarWidth,
         staticParams.headerRowHeight,
         {
@@ -310,7 +307,7 @@ export const rebuildGroups = () => {
         const y = stageHeight - getSummaryRowHeight() - horizontalScrollbarHeight
 
         // 为中间汇总也创建裁剪组，防止汇总横向滚动时遮挡固定列（与表头保持一致）
-        const centerSummaryClipGroup = createGroup('summary', 'center', 0, y, {
+        const centerSummaryClipGroup = createSummaryClipGroup(0, y, {
             x: 0,
             y: 0,
             width: stageWidth - rightWidth - verticalScrollbarWidth,
@@ -319,9 +316,9 @@ export const rebuildGroups = () => {
 
         summaryVars.summaryLayer.add(centerSummaryClipGroup)
 
-        summaryVars.leftSummaryGroup = createSummaryLeftGroups(0, y) // 直接定位到汇总行位置
-        summaryVars.centerSummaryGroup = createSummaryCenterGroups(leftWidth, 0)
-        summaryVars.rightSummaryGroup = createSummaryRightGroups(stageWidth - rightWidth - verticalScrollbarWidth, y)
+        summaryVars.leftSummaryGroup = createSummaryLeftGroup(0, y) // 直接定位到汇总行位置
+        summaryVars.centerSummaryGroup = createSummaryCenterGroup(leftWidth, 0)
+        summaryVars.rightSummaryGroup = createSummaryRightGroup(stageWidth - rightWidth - verticalScrollbarWidth, y)
 
         centerSummaryClipGroup.add(summaryVars.centerSummaryGroup)
         summaryVars.summaryLayer.add(summaryVars.leftSummaryGroup, summaryVars.rightSummaryGroup)
@@ -339,13 +336,13 @@ export const rebuildGroups = () => {
     if (maxScrollY > 0) {
         scrollbarVars.verticalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
-        drawVerticalScrollbar()
+        drawVerticalScrollbarPart()
     }
 
     if (maxScrollX > 0) {
         scrollbarVars.horizontalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.horizontalScrollbarGroup)
-        drawHorizontalScrollbar()
+        drawHorizontalScrollbarPart()
     }
 
     // 确保层级绘制顺序正确：固定列在上层
@@ -376,7 +373,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     if (scrollbarVars.isDraggingVerticalThumb) {
         const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
         const { maxScrollY, maxScrollX } = getScrollLimits()
-        const stageHeight = stageVars.stage.height()
+        const { height: stageHeight } = getStageAttr()
         const trackHeight =
             stageHeight -
             staticParams.headerRowHeight -
@@ -416,7 +413,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
         const { maxScrollX } = getScrollLimits()
         const { leftWidth, rightWidth, centerWidth } = getSplitColumns()
-        const stageWidth = stageVars.stage.width()
+        const { width: stageWidth } = getStageAttr()
         const visibleWidth = stageWidth - leftWidth - rightWidth - staticParams.scrollbarSize
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
         const scrollRatio = deltaX / (visibleWidth - thumbWidth)
