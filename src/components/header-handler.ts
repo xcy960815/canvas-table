@@ -1,6 +1,7 @@
 import { reactive, ref } from 'vue'
 import Konva from 'konva'
 import { stageVars, clearGroups } from './stage-handler'
+import { tableColumns } from './parameter'
 export type Prettify<T> = {
     [K in keyof T]: T[K]
 } & {}
@@ -88,7 +89,7 @@ export const headerVars: HeaderVars = {
     resizingColumnName: null,
 
     resizeStartX: 0,
-    
+
     resizeStartWidth: 0
 }
 
@@ -155,6 +156,27 @@ export const handleTableData = () => {
 
     // 更新最终数据
     tableData.value = processedData
+}
+
+/**
+ * 处理表格列
+ * @returns {void}
+ */
+export const handleTableColumns = () => {
+    const xAxisFields = staticParams.xAxisFields
+    const yAxisFields = staticParams.yAxisFields
+    const leftColsx = xAxisFields.filter((c) => c.fixed === 'left')
+    const rightColsx = xAxisFields.filter((c) => c.fixed === 'right')
+    const centerColsx = xAxisFields.filter((c) => !c.fixed)
+    const leftColsy = yAxisFields.filter((c) => c.fixed === 'left')
+    const rightColsy = yAxisFields.filter((c) => c.fixed === 'right')
+    const centerColsy = yAxisFields.filter((c) => !c.fixed)
+    tableColumns.value = leftColsx
+        .concat(centerColsx)
+        .concat(rightColsx)
+        .concat(leftColsy)
+        .concat(centerColsy)
+        .concat(rightColsy)
 }
 
 /**
@@ -271,7 +293,7 @@ const createColumnResizer = (
 
     headerGroup.add(resizer)
 
-    resizer.on('mousedown', (evt:Konva.KonvaEventObject<MouseEvent>) => {
+    resizer.on('mousedown', (evt: Konva.KonvaEventObject<MouseEvent>) => {
         headerVars.isResizingColumn = true
         headerVars.resizingColumnName = columnOption.columnName
         headerVars.resizeStartX = evt.evt.clientX
@@ -311,6 +333,7 @@ const createSortIcon = (
 
     // 下箭头（降序）- 指向下方的三角形
     const downArrowY = centerY + LAYOUT_CONSTANTS.ARROW_GAP / 2
+    
     const downArrowPath = `M ${arrowX} ${downArrowY} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE / 2} ${downArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE} ${downArrowY} Z`
 
     // 创建上箭头

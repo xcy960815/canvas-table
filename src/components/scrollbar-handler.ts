@@ -5,9 +5,11 @@ import { headerVars } from "./header-handler";
 import { bodyVars, getSummaryRowHeight, calculateVisibleRows, getScrollLimits, getSplitColumns, drawBodyPart } from "./body-handler";
 import { summaryVars } from "./summary-handler";
 import {
-    setPointerStyle, constrainToRange, drawUnifiedText,
-    drawUnifiedRect,
-} from "./utils";
+    getTableContainer,
+    setPointerStyle,
+    constrainToRange,
+    createUnifiedCellRect,
+} from './utils'
 
 interface ScrollbarVars {
     scrollbarLayer: Konva.Layer | null,
@@ -80,7 +82,6 @@ export const scrollbarVars: ScrollbarVars = {
      * 水平滚动条拖拽起始滚动位置 X
      */
     dragStartScrollX: 0,
-
 
     /**
    * 垂直滚动多少像素
@@ -228,14 +229,14 @@ export const updateHorizontalScroll = (offsetX: number) => {
 export const updateVerticalScroll = (offsetY: number) => {
     if (!stageVars.stage || !bodyVars.leftBodyGroup || !bodyVars.centerBodyGroup || !bodyVars.rightBodyGroup) return
 
-    // 简化版本：直接使用传入的偏移量，不做累积和节流处理
     const actualOffsetY = offsetY
 
     const { maxScrollY } = getScrollLimits()
+
     scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxScrollY)
 
-    // 简化版本：每次滚动都重新计算和渲染
     const oldVisibleStart = bodyVars.visibleRowStart
+
     const oldVisibleEnd = bodyVars.visibleRowEnd
 
     calculateVisibleRows()
@@ -279,7 +280,7 @@ export const updateVerticalScroll = (offsetY: number) => {
  * 设置垂直滚动条事件
  * @returns {void}
  */
-export const setupVerticalScrollbarEvents = () => {
+const setupVerticalScrollbarEvents = () => {
 
     if (!scrollbarVars.verticalScrollbarThumb || !stageVars.stage) return
     /**
@@ -348,14 +349,15 @@ export const updateScrollbarPosition = () => {
  * @returns {void}
  */
 export const drawVerticalScrollbar = () => {
+    
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
+
     const { width: stageWidth, height: stageHeight } = getStageAttr()
 
     const { maxScrollX, maxScrollY } = getScrollLimits()
 
     // 绘制垂直滚动条顶部遮罩（覆盖表头部分）
-    const verticalScrollbarTopMask = drawUnifiedRect({
-        pools: bodyVars.leftBodyPools,
+    createUnifiedCellRect({
         name: 'vertical-scrollbar-top-mask',
         x: stageWidth - staticParams.scrollbarSize,
         y: 0,
@@ -363,14 +365,14 @@ export const drawVerticalScrollbar = () => {
         height: staticParams.headerRowHeight,
         fill: staticParams.headerBackground,
         stroke: staticParams.borderColor,
-        strokeWidth: 1
+        strokeWidth: 1,
+        listening: false,
+        group: scrollbarVars.scrollbarLayer
     })
-    scrollbarVars.scrollbarLayer.add(verticalScrollbarTopMask)
 
     if (getSummaryRowHeight()) {
         // 绘制垂直滚动条底部遮罩（覆盖汇总行部分）
-        const verticalScrollbarBottomMask = drawUnifiedRect({
-            pools: bodyVars.leftBodyPools,
+        createUnifiedCellRect({
             name: 'vertical-scrollbar-bottom-mask',
             x: stageWidth - staticParams.scrollbarSize,
             y: stageHeight - getSummaryRowHeight() - (maxScrollX > 0 ? staticParams.scrollbarSize : 0),
@@ -378,14 +380,14 @@ export const drawVerticalScrollbar = () => {
             height: getSummaryRowHeight(),
             fill: staticParams.summaryBackground,
             stroke: staticParams.borderColor,
-            strokeWidth: 1
+            strokeWidth: 1,
+            listening: false,
+            group: scrollbarVars.scrollbarLayer
         })
-        scrollbarVars.scrollbarLayer.add(verticalScrollbarBottomMask)
     }
 
     // 绘制垂直滚动条轨道
-    const verticalScrollbarRect = drawUnifiedRect({
-        pools: bodyVars.leftBodyPools,
+    createUnifiedCellRect({
         name: 'vertical-scrollbar-track',
         x: stageWidth - staticParams.scrollbarSize,
         y: staticParams.headerRowHeight,
@@ -393,9 +395,10 @@ export const drawVerticalScrollbar = () => {
         height: stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - (maxScrollX > 0 ? staticParams.scrollbarSize : 0),
         fill: staticParams.scrollbarBackground,
         stroke: staticParams.borderColor,
-        strokeWidth: 1
+        strokeWidth: 1,
+        listening: false,
+        group: scrollbarVars.verticalScrollbarGroup!
     })
-    scrollbarVars.verticalScrollbarGroup?.add(verticalScrollbarRect)
 
     // 计算垂直滚动条高度
     const trackHeight =
@@ -405,8 +408,7 @@ export const drawVerticalScrollbar = () => {
     const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxScrollY) * (trackHeight - thumbHeight)
 
     // 绘制垂直滚动条滑块
-    scrollbarVars.verticalScrollbarThumb = drawUnifiedRect({
-        pools: bodyVars.leftBodyPools,
+    scrollbarVars.verticalScrollbarThumb = createUnifiedCellRect({
         name: 'vertical-scrollbar-thumb',
         x: stageWidth - staticParams.scrollbarSize + 2,
         y: thumbY,
@@ -414,9 +416,11 @@ export const drawVerticalScrollbar = () => {
         height: thumbHeight,
         fill: staticParams.scrollbarThumbBackground,
         cornerRadius: 2,
-        listening: true
+        listening: true,
+        stroke: staticParams.borderColor,
+        strokeWidth: 0,
+        group: scrollbarVars.verticalScrollbarGroup!
     })
-    scrollbarVars.verticalScrollbarGroup?.add(scrollbarVars.verticalScrollbarThumb!)
 
     // 设置垂直滚动条事件
     setupVerticalScrollbarEvents()
@@ -427,7 +431,7 @@ export const drawVerticalScrollbar = () => {
  * 设置水平滚动条事件
  * @returns {void}
  */
-export const setupHorizontalScrollbarEvents = () => {
+const setupHorizontalScrollbarEvents = () => {
     if (!scrollbarVars.horizontalScrollbarThumb || !stageVars.stage) return
     scrollbarVars.horizontalScrollbarThumb.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
         scrollbarVars.isDraggingHorizontalThumb = true
@@ -466,8 +470,7 @@ export const drawHorizontalScrollbar = () => {
 
     const verticalScrollbarSpaceForHorizontal = maxScrollY > 0 ? staticParams.scrollbarSize : 0
     // 绘制水平滚动条轨道
-    const horizontalScrollbarTrack = drawUnifiedRect({
-        pools: bodyVars.leftBodyPools,
+    createUnifiedCellRect({
         name: 'horizontal-scrollbar-track',
         x: 0,
         y: stageHeight - staticParams.scrollbarSize,
@@ -475,10 +478,10 @@ export const drawHorizontalScrollbar = () => {
         height: staticParams.scrollbarSize,
         fill: staticParams.scrollbarBackground,
         stroke: staticParams.borderColor,
-        strokeWidth: 1
+        strokeWidth: 1,
+        listening: false,
+        group: scrollbarVars.horizontalScrollbarGroup!
     })
-
-    scrollbarVars.horizontalScrollbarGroup?.add(horizontalScrollbarTrack)
 
     // 计算水平滚动条宽度
     const { leftWidth, rightWidth, centerWidth } = getSplitColumns()
@@ -489,8 +492,7 @@ export const drawHorizontalScrollbar = () => {
     const thumbX = leftWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
 
     // 绘制水平滚动条滑块
-    scrollbarVars.horizontalScrollbarThumb = drawUnifiedRect({
-        pools: bodyVars.leftBodyPools,
+    scrollbarVars.horizontalScrollbarThumb = createUnifiedCellRect({
         name: 'horizontal-scrollbar-thumb',
         x: thumbX,
         y: stageHeight - staticParams.scrollbarSize + 2,
@@ -498,21 +500,21 @@ export const drawHorizontalScrollbar = () => {
         height: staticParams.scrollbarSize - 4,
         fill: staticParams.scrollbarThumbBackground,
         cornerRadius: 2,
-        listening: true
+        listening: true,
+        stroke: staticParams.borderColor,
+        strokeWidth: 0,
+        group: scrollbarVars.horizontalScrollbarGroup!
     })
-    scrollbarVars.horizontalScrollbarGroup?.add(scrollbarVars.horizontalScrollbarThumb!)
 
     // 设置水平滚动条事件
     setupHorizontalScrollbarEvents()
 }
 
-
-
 /**
  * 处理滚轮事件
  * @param {WheelEvent} e - 滚轮事件
  */
-export const handleMouseWheel = (e: WheelEvent) => {
+const handleMouseWheel = (e: WheelEvent) => {
     e.preventDefault()
 
     if (stageVars.stage) stageVars.stage.setPointersPositions(e)
@@ -538,4 +540,22 @@ export const handleMouseWheel = (e: WheelEvent) => {
             updateHorizontalScroll(e.deltaX)
         }
     }
+}
+
+/**
+ * 初始化滚轮事件监听器
+ * @returns {void}
+ */
+export const initWheelListener = () => {
+    const tableContainer = getTableContainer()
+    tableContainer?.addEventListener('wheel', handleMouseWheel, { passive: false })
+}
+
+/**
+ * 清理滚轮事件监听器
+ * @returns {void}
+ */
+export const cleanupWheelListener = () => {
+    const tableContainer = getTableContainer()
+    tableContainer?.removeEventListener('wheel', handleMouseWheel)
 }

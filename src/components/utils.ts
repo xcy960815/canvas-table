@@ -284,6 +284,7 @@ export const createUnifiedCellRect = (config: {
     strokeWidth: number
     listening: boolean
     group: Konva.Group
+    cornerRadius?: number
 }) => {
     const rect = new Konva.Rect({
         name: config.name,
@@ -294,7 +295,8 @@ export const createUnifiedCellRect = (config: {
         fill: config.fill,
         stroke: config.stroke,
         strokeWidth: config.strokeWidth,
-        listening: config.listening
+        listening: config.listening,
+        cornerRadius: config.cornerRadius ?? 0
     })
 
     config.group.add(rect)

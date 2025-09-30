@@ -2,14 +2,11 @@
   <div id="table-container" class="table-container" :style="tableContainerStyle"></div>
 </template>
 <script lang="ts" setup>
-import { tableProps, staticParams, tableColumns } from './parameter';
-import {
-  getTableContainer,
-} from './utils'
+import { tableProps, staticParams } from './parameter';
 import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { stageVars, initStage, destroyStage, initStageListeners,cleanupStageListeners } from './stage-handler';
-import { sortColumns, handleTableData } from './header-handler';
-import { handleMouseWheel } from './scrollbar-handler';
+import { stageVars, initStage, destroyStage, initStageListeners, cleanupStageListeners } from './stage-handler';
+import { sortColumns, handleTableColumns, handleTableData } from './header-handler';
+import { initWheelListener,cleanupWheelListener } from './scrollbar-handler';
 import { refreshTable } from './stage-handler';
 
 const props = defineProps(tableProps);
@@ -27,26 +24,7 @@ const tableContainerStyle = computed(() => {
   }
 })
 
-/**
- * 处理表格列
- * @returns {void}
- */
-const handleTableColumns = () => {
-  const xAxisFields = staticParams.xAxisFields
-  const yAxisFields = staticParams.yAxisFields
-  const leftColsx = xAxisFields.filter((c) => c.fixed === 'left')
-  const rightColsx = xAxisFields.filter((c) => c.fixed === 'right')
-  const centerColsx = xAxisFields.filter((c) => !c.fixed)
-  const leftColsy = yAxisFields.filter((c) => c.fixed === 'left')
-  const rightColsy = yAxisFields.filter((c) => c.fixed === 'right')
-  const centerColsy = yAxisFields.filter((c) => !c.fixed)
-  tableColumns.value = leftColsx
-    .concat(centerColsx)
-    .concat(rightColsx)
-    .concat(leftColsy)
-    .concat(centerColsy)
-    .concat(rightColsy)
-}
+
 
 
 
@@ -236,27 +214,10 @@ watch(
     deep: true
   }
 )
-/**
- * 初始化滚轮事件监听器
- * @returns {void}
- */
-const initWheelListener = () => {
-  const tableContainer = getTableContainer()
-  tableContainer?.addEventListener('wheel', handleMouseWheel, { passive: false })
-}
-
-/**
- * 清理滚轮事件监听器
- * @returns {void}
- */
-const cleanupWheelListener = () => {
-  const tableContainer = getTableContainer()
-  tableContainer?.removeEventListener('wheel', handleMouseWheel)
-}
 
 onMounted(() => {
-  handleTableColumns()
   initStage()
+  handleTableColumns()
   handleTableData()
   refreshTable(true)
   initWheelListener()
