@@ -237,6 +237,7 @@ export const updateVerticalScroll = (offsetY: number) => {
     // 简化版本：每次滚动都重新计算和渲染
     const oldVisibleStart = bodyVars.visibleRowStart
     const oldVisibleEnd = bodyVars.visibleRowEnd
+
     calculateVisibleRows()
 
     const visibleRangeChanged =
@@ -311,6 +312,10 @@ export const setupVerticalScrollbarEvents = () => {
     }
 }
 
+/**
+ * 更新滚动条位置
+ * @returns {void}
+ */
 export const updateScrollbarPosition = () => {
     if (!stageVars.stage) return
 
@@ -422,7 +427,7 @@ export const drawVerticalScrollbar = () => {
  * 设置水平滚动条事件
  * @returns {void}
  */
-const setupHorizontalScrollbarEvents = () => {
+export const setupHorizontalScrollbarEvents = () => {
     if (!scrollbarVars.horizontalScrollbarThumb || !stageVars.stage) return
     scrollbarVars.horizontalScrollbarThumb.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
         scrollbarVars.isDraggingHorizontalThumb = true

@@ -503,9 +503,8 @@ export const drawBodyPart = (
     bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
     pools: KonvaNodePools
 ) => {
-    
-    
     if (!stageVars.stage || !bodyGroup) return
+    
     calculateVisibleRows()
 
     const bodyFontSize = staticParams.bodyFontSize

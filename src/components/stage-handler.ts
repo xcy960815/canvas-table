@@ -1,9 +1,9 @@
 import Konva from 'konva'
 import { staticParams } from "./parameter"
-import { clearPool, constrainToRange, getTableContainer,createGroup, setPointerStyle } from './utils'
+import { clearPool, constrainToRange, getTableContainer, createGroup, setPointerStyle } from './utils'
 import { createHeaderCenterGroups, createHeaderLeftGroups, createHeaderRightGroups, drawHeaderPart, headerVars } from './header-handler'
-import { bodyVars, calculateVisibleRows, getScrollLimits, getSplitColumns,createBodyCenterGroups,createBodyLeftGroups,createBodyRightGroups,drawBodyPart,getSummaryRowHeight } from './body-handler'
-import { summaryVars,createSummaryLeftGroups,createSummaryCenterGroups,createSummaryRightGroups,drawSummaryPart } from './summary-handler'
+import { bodyVars, calculateVisibleRows, getScrollLimits, getSplitColumns, createBodyCenterGroups, createBodyLeftGroups, createBodyRightGroups, drawBodyPart, getSummaryRowHeight } from './body-handler'
+import { summaryVars, createSummaryLeftGroups, createSummaryCenterGroups, createSummaryRightGroups, drawSummaryPart } from './summary-handler'
 import { drawHorizontalScrollbar, drawVerticalScrollbar, scrollbarVars, updateScrollPositions } from './scrollbar-handler'
 import { tableData } from './parameter'
 
@@ -95,7 +95,7 @@ export const initStage = () => {
     if (!tableContainer) return
     const width = tableContainer.clientWidth
     const height = tableContainer.clientHeight
-    
+
     if (!stageVars.stage) {
         stageVars.stage = new Konva.Stage({ container: tableContainer, width, height })
     } else {
@@ -131,9 +131,7 @@ export const initStage = () => {
 
     // 5. 滚动条组（根据滚动需求创建）
     const { maxScrollX, maxScrollY } = getScrollLimits()
-    console.log("maxScrollX",maxScrollX);
-    console.log("maxScrollY",maxScrollY);
-    
+
     if (maxScrollY > 0 && !scrollbarVars.verticalScrollbarGroup) {
         scrollbarVars.verticalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
@@ -154,7 +152,7 @@ export const initStage = () => {
         clientX: 0,
         clientY: 0
     })
-    
+
 }
 
 /**
@@ -202,8 +200,6 @@ export const refreshTable = (resetScroll: boolean) => {
         scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX, 0, maxScrollX)
         scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY, 0, maxScrollY)
     }
-
-    calculateVisibleRows()
     clearGroups()
     rebuildGroups()
 }
@@ -231,8 +227,8 @@ export const rebuildGroups = () => {
     const { maxScrollX, maxScrollY } = getScrollLimits()
     const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
     const horizontalScrollbarHeight = maxScrollX > 0 ? staticParams.scrollbarSize : 0
-    
-    
+
+
     // 为中间表头也创建裁剪组，防止表头横向滚动时遮挡固定列
     const centerHeaderClipGroup = createGroup('header', 'center', 0, 0, {
         x: 0,
@@ -449,4 +445,37 @@ export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
             scrollbarVars.horizontalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
         scrollbarVars.scrollbarLayer?.batchDraw()
     }
+}
+
+/**
+ * 全局窗口尺寸变化处理
+ * @returns {void}
+ */
+const handleGlobalResize = () => {
+    initStage()
+    clearGroups()
+    rebuildGroups()
+}
+
+/**
+ * 初始化全局事件监听器
+ * @returns {void}
+ */
+export const initStageListeners = () => {
+    window.addEventListener('resize', handleGlobalResize)
+    // 需要保留鼠标移动监听以支持列宽拖拽功能
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+}
+
+
+/**
+ * 清理全局事件监听器
+ * @returns {void}
+ */
+export const cleanupStageListeners = () => {
+    window.removeEventListener('resize', handleGlobalResize)
+    // 清理鼠标移动监听
+    window.removeEventListener('mousemove', handleGlobalMouseMove)
+    window.removeEventListener('mouseup', handleGlobalMouseUp)
 }

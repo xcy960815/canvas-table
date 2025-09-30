@@ -7,9 +7,8 @@ import {
   getTableContainer,
 } from './utils'
 import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { stageVars, initStage, destroyStage, clearGroups,rebuildGroups, handleGlobalMouseMove, handleGlobalMouseUp } from './stage-handler';
+import { stageVars, initStage, destroyStage, initStageListeners,cleanupStageListeners } from './stage-handler';
 import { sortColumns, handleTableData } from './header-handler';
-import { calculateVisibleRows } from "./body-handler";
 import { handleMouseWheel } from './scrollbar-handler';
 import { refreshTable } from './stage-handler';
 
@@ -30,12 +29,9 @@ const tableContainerStyle = computed(() => {
 
 /**
  * 处理表格列
- * @param {Array<GroupStore.GroupOption>} xAxisFields - x轴字段
- * @param {Array<DimensionStore.DimensionOption>} yAxisFields - y轴字段
  * @returns {void}
  */
-const handleTableColumns = (
-) => {
+const handleTableColumns = () => {
   const xAxisFields = staticParams.xAxisFields
   const yAxisFields = staticParams.yAxisFields
   const leftColsx = xAxisFields.filter((c) => c.fixed === 'left')
@@ -52,40 +48,7 @@ const handleTableColumns = (
     .concat(rightColsy)
 }
 
-// handleGlobalMouseMove 和 handleGlobalMouseUp 已移至 stage-handler.ts
 
-/**
- * 全局窗口尺寸变化处理
- * @returns {void}
- */
-const handleGlobalResize = () => {
-  initStage()
-  calculateVisibleRows()
-  clearGroups()
-  rebuildGroups()
-}
-
-/**
- * 初始化全局事件监听器
- * @returns {void}
- */
-const initStageListeners = () => {
-  window.addEventListener('resize', handleGlobalResize)
-  // 需要保留鼠标移动监听以支持列宽拖拽功能
-  window.addEventListener('mousemove', handleGlobalMouseMove)
-  window.addEventListener('mouseup', handleGlobalMouseUp)
-}
-
-/**
- * 清理全局事件监听器
- * @returns {void}
- */
-const cleanupStageListeners = () => {
-  window.removeEventListener('resize', handleGlobalResize)
-  // 清理鼠标移动监听
-  window.removeEventListener('mousemove', handleGlobalMouseMove)
-  window.removeEventListener('mouseup', handleGlobalMouseUp)
-}
 
 
 watch(props, () => {
@@ -273,11 +236,6 @@ watch(
     deep: true
   }
 )
-
-
-
-// handleMouseWheel 已移至 scrollbar-handler.ts
-
 /**
  * 初始化滚轮事件监听器
  * @returns {void}
@@ -313,7 +271,5 @@ onUnmounted(() => {
   // cleanupSummaryDropdownListeners()
   // cleanupCellEditorListeners()
   destroyStage()
-  // 清理全局实例
-  // setGlobalFilterDropdownInstance(null)
 })
 </script>
