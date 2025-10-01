@@ -206,7 +206,7 @@ export const refreshTable = (resetScroll: boolean) => {
  * 重建表头分组
  * @returns {void}
  */
-const rebuildHeaderGroups = () => {
+const rebuildHeaderGroup = () => {
     if (!headerVars.headerLayer) return
     const { width: stageWidth, } = getStageAttr()
     const { maxVerticalScroll } = calculateScrollRange()
@@ -239,7 +239,7 @@ const rebuildHeaderGroups = () => {
  * 重建主体分组
  * @returns {void}
  */
-const rebuildBodyGroups = () => {
+const rebuildBodyGroup = () => {
     if (!bodyVars.bodyLayer || !bodyVars.fixedBodyLayer) return
     const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
     const { width: stageWidth, height: stageHeight } = getStageAttr()
@@ -305,7 +305,7 @@ const rebuildBodyGroups = () => {
  * 重建汇总分组
  * @returns {void}
  */
-const rebuildSummaryGroups = () => {
+const rebuildSummaryGroup = () => {
     if (!summaryVars.summaryLayer) return
 
     // 创建汇总行组（完全参考header的实现方式）
@@ -343,35 +343,52 @@ const rebuildSummaryGroups = () => {
 }
 
 /**
- * 重建所有分组
+ * 重建垂直滚动条分组
  * @returns {void}
  */
-export const rebuildGroups = () => {
-    if (
-        !stageVars.stage ||
+const rebuildVerticalScrollbarGroup = () => {
+    if (!scrollbarVars.scrollbarLayer) return
 
+    const { maxVerticalScroll } = calculateScrollRange()
 
-        !scrollbarVars.scrollbarLayer
-    ) {
-        return
-    }
-    rebuildHeaderGroups()
-    rebuildBodyGroups()
-    rebuildSummaryGroups()
-    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
-
-    // 滚动条相关 - 绘制滚动条
     if (maxVerticalScroll > 0) {
         scrollbarVars.verticalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
         drawVerticalScrollbarPart()
     }
+}
+
+/**
+ * 重建水平滚动条分组
+ * @returns {void}
+ */
+const rebuildHorizontalScrollbarGroup = () => {
+    if (!scrollbarVars.scrollbarLayer) return
+
+    const { maxHorizontalScroll } = calculateScrollRange()
 
     if (maxHorizontalScroll > 0) {
         scrollbarVars.horizontalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.horizontalScrollbarGroup)
         drawHorizontalScrollbarPart()
     }
+}
+
+/**
+ * 重建所有分组
+ * @returns {void}
+ */
+export const rebuildGroups = () => {
+    if (
+        !stageVars.stage
+    ) {
+        return
+    }
+    rebuildHeaderGroup()
+    rebuildBodyGroup()
+    rebuildSummaryGroup()
+    rebuildVerticalScrollbarGroup()
+    rebuildHorizontalScrollbarGroup()
 
     // 主体相关
     bodyVars.bodyLayer?.batchDraw() // 1. 先绘制可滚动的中间内容
