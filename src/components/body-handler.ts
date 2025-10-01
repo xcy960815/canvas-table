@@ -173,39 +173,6 @@ export const getColumnsInfo = () => {
         totalWidth: sumWidth(tableColumns)
     }
 }
-/**
- * 获取滚动限制
- * @returns {Object} 滚动限制
- */
-export const getScrollLimits = () => {
-    if (!stageVars.stage) return { maxScrollX: 0, maxScrollY: 0 }
-    const { totalWidth, leftPartWidth, rightPartWidth } = getColumnsInfo()
-
-    const { width: stageWidth, height: stageHeight } = getStageAttr()
-
-    // 计算内容高度
-    const contentHeight = tableData.value.length * staticParams.bodyRowHeight
-
-    // 初步估算：不预留滚动条空间
-    const visibleContentWidthNoV = stageWidth - leftPartWidth - rightPartWidth
-    const contentHeightNoH = stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight
-    const prelimMaxX = Math.max(0, totalWidth - leftPartWidth - rightPartWidth - visibleContentWidthNoV)
-    const prelimMaxY = Math.max(0, contentHeight - contentHeightNoH)
-    const verticalScrollbarSpace = prelimMaxY > 0 ? staticParams.scrollbarSize : 0
-    const horizontalScrollbarSpace = prelimMaxX > 0 ? staticParams.scrollbarSize : 0
-    // 复算：考虑另一条滚动条占位
-    const visibleContentWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarSpace
-    const maxScrollX = Math.max(0, totalWidth - leftPartWidth - rightPartWidth - visibleContentWidth)
-    const maxScrollY = Math.max(
-        0,
-        contentHeight - (stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - horizontalScrollbarSpace)
-    )
-
-    return { maxScrollX, maxScrollY }
-}
-
-
-
 
 /**
  * 创建合并单元格
@@ -392,142 +359,6 @@ export const calculateMergedCellWidth = (
 }
 
 /**
- * 渲染单行的所有单元格
- * @param {Object} params - 渲染参数
- * @param {number} params.rowIndex - 行索引
- * @param {number} params.y - y坐标
- * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} params.bodyCols - 列配置数组
- * @param {KonvaNodePools} params.pools - 对象池
- * @param {Konva.Group} params.bodyGroup - 主体组
- * @param {NonNullable<typeof staticParams.spanMethod> | null} params.spanMethod - 合并方法
- * @param {boolean} params.hasSpanMethod - 是否有合并方法
- * @param {Map<string, number>} params.globalIndexByColName - 全局列索引映射
- * @param {number} params.bodyFontSize - 字体大小
- */
-const renderRowCells = (params: {
-    rowIndex: number
-    y: number
-    bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>
-    pools: KonvaNodePools
-    bodyGroup: Konva.Group
-    spanMethod: NonNullable<typeof staticParams.spanMethod> | null
-    hasSpanMethod: boolean
-    bodyFontSize: number
-}) => {
-    const { rowIndex, y, bodyCols, pools, bodyGroup, spanMethod, hasSpanMethod, bodyFontSize } =
-        params
-
-    const row = tableData.value[rowIndex]
-    let x = 0
-
-    for (let colIndex = 0; colIndex < bodyCols.length; colIndex++) {
-        const columnOption = bodyCols[colIndex]
-        const result = renderCell({
-            pools,
-            bodyGroup,
-            x,
-            y,
-            rowIndex,
-            colIndex,
-            columnOption,
-            row,
-            bodyCols,
-            spanMethod,
-            hasSpanMethod,
-            bodyFontSize
-        })
-
-        x = result.newX
-        colIndex += result.skipCols
-    }
-}
-
-
-/**
- * 渲染单个单元格
- * @param {Object} params - 渲染参数
- * @param {KonvaNodePools} params.pools - 对象池
- * @param {Konva.Group} params.bodyGroup - 主体组
- * @param {number} params.x - x坐标
- * @param {number} params.y - y坐标
- * @param {number} params.rowIndex - 行索引
- * @param {number} params.colIndex - 列索引
- * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} params.columnOption - 列配置
- * @param {ChartDataVo.ChartData} params.row - 行数据
- * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} params.bodyCols - 列配置数组
- * @param {NonNullable<typeof staticParams.spanMethod> | null} params.spanMethod - 合并方法
- * @param {boolean} params.hasSpanMethod - 是否有合并方法
- * @param {Map<string, number>} params.globalIndexByColName - 全局列索引映射
- * @param {number} params.bodyFontSize - 字体大小
- * @returns {Object} 渲染结果
- */
-const renderCell = (params: {
-    pools: KonvaNodePools
-    bodyGroup: Konva.Group
-    x: number
-    y: number
-    rowIndex: number
-    colIndex: number
-    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption
-    row: ChartDataVo.ChartData
-    bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>
-    spanMethod: NonNullable<typeof staticParams.spanMethod> | null
-    hasSpanMethod: boolean
-    bodyFontSize: number
-}) => {
-    const {
-        pools,
-        bodyGroup,
-        x,
-        y,
-        rowIndex,
-        colIndex,
-        columnOption,
-        row,
-        bodyCols,
-        spanMethod,
-        hasSpanMethod,
-        bodyFontSize
-    } = params
-
-    const columnWidth = columnOption.width || 0
-    if (columnWidth <= 0) return { newX: x + columnWidth, skipCols: 0 }
-
-    // 计算合并单元格信息
-    let spanRow = 1
-    let spanCol = 1
-    let coveredBySpanMethod = false
-
-    if (hasSpanMethod && spanMethod) {
-        const spanInfo = calculateCellSpan(spanMethod, row, columnOption, rowIndex)
-        spanRow = spanInfo.spanRow
-        spanCol = spanInfo.spanCol
-        coveredBySpanMethod = spanInfo.coveredBySpanMethod
-    }
-
-    // 如果被合并覆盖，跳过绘制
-    if (hasSpanMethod && coveredBySpanMethod) {
-        return { newX: x + columnWidth, skipCols: 0 }
-    }
-
-    const computedRowSpan = hasSpanMethod ? spanRow : 1
-    const cellHeight = computedRowSpan * staticParams.bodyRowHeight
-    const cellWidth = calculateMergedCellWidth(spanCol, colIndex, bodyCols, columnWidth)
-    // 绘制单元格
-    if (hasSpanMethod && (computedRowSpan > 1 || spanCol > 1)) {
-        drawMergedCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)
-    } else {
-        drawNormalCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)
-    }
-
-    // 计算下一个位置和跳过的列数
-    const skipCols = hasSpanMethod && spanCol > 1 ? spanCol - 1 : 0
-    const newX = hasSpanMethod && spanCol > 1 ? x + cellWidth : x + columnWidth
-
-    return { newX, skipCols }
-}
-
-/**
  * 画body区域 只渲染可视区域的行
  * @param {Konva.Group | null} bodyGroup - 分组
  * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} bodyCols - 列
@@ -546,28 +377,67 @@ export const drawBodyPart = (
     const bodyFontSize = staticParams.bodyFontSize
     const spanMethod = typeof staticParams.spanMethod === 'function' ? staticParams.spanMethod : null
     const hasSpanMethod = !!spanMethod
+    
     // 清理旧节点
     recoverKonvaNode(bodyGroup, pools)
 
     // 渲染可视区域的行
     for (let rowIndex = bodyVars.visibleRowStart; rowIndex <= bodyVars.visibleRowEnd; rowIndex++) {
         const y = rowIndex * staticParams.bodyRowHeight
-        renderRowCells({
-            rowIndex,
-            y,
-            bodyCols,
-            pools,
-            bodyGroup,
-            spanMethod,
-            hasSpanMethod,
-            bodyFontSize
-        })
+        const row = tableData.value[rowIndex]
+        let x = 0
+
+        // 渲染一行的所有列
+        for (let colIndex = 0; colIndex < bodyCols.length; colIndex++) {
+            const columnOption = bodyCols[colIndex]
+            const columnWidth = columnOption.width || 0
+            
+            if (columnWidth <= 0) {
+                x += columnWidth
+                continue
+            }
+
+            // 计算合并单元格信息
+            let spanRow = 1
+            let spanCol = 1
+            let coveredBySpanMethod = false
+
+            if (hasSpanMethod && spanMethod) {
+                const spanInfo = calculateCellSpan(spanMethod, row, columnOption, rowIndex)
+                spanRow = spanInfo.spanRow
+                spanCol = spanInfo.spanCol
+                coveredBySpanMethod = spanInfo.coveredBySpanMethod
+            }
+
+            // 如果被合并覆盖，跳过绘制
+            if (hasSpanMethod && coveredBySpanMethod) {
+                x += columnWidth
+                continue
+            }
+
+            const computedRowSpan = hasSpanMethod ? spanRow : 1
+            const cellHeight = computedRowSpan * staticParams.bodyRowHeight
+            const cellWidth = calculateMergedCellWidth(spanCol, colIndex, bodyCols, columnWidth)
+            
+            // 绘制单元格
+            if (hasSpanMethod && (computedRowSpan > 1 || spanCol > 1)) {
+                drawMergedCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)
+            } else {
+                drawNormalCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)
+            }
+
+            // 计算下一个位置和跳过的列数
+            if (hasSpanMethod && spanCol > 1) {
+                colIndex += spanCol - 1
+                x += cellWidth
+            } else {
+                x += columnWidth
+            }
+        }
     }
 
     // 渲染完成后，若存在点击高亮，保持其在最顶层
     if (bodyVars.highlightRect) {
         bodyVars.highlightRect.moveToTop()
-        // const layer = bodyGroup.getLayer()
-        // layer?.batchDraw()
     }
 }

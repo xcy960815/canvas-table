@@ -2,7 +2,7 @@ import Konva from "konva";
 import { stageVars, getStageAttr } from "./stage-handler";
 import { staticParams, tableData } from "./parameter";
 import { headerVars } from "./header-handler";
-import { bodyVars, getSummaryRowHeight, calculateVisibleRows, getScrollLimits, getColumnsInfo, drawBodyPart } from "./body-handler";
+import { bodyVars, getSummaryRowHeight, calculateVisibleRows, getColumnsInfo, drawBodyPart } from "./body-handler";
 import { summaryVars } from "./summary-handler";
 import {
     getTableContainer,
@@ -93,6 +93,37 @@ export const scrollbarVars: ScrollbarVars = {
      */
     stageScrollX: 0,
 
+}
+
+/**
+ * 计算滚动范围
+ * @returns {Object} 包含最大滚动偏移量的对象
+ */
+export const calculateScrollRange = () => {
+    if (!stageVars.stage) return { maxHorizontalScroll: 0, maxVerticalScroll: 0 }
+    const { totalWidth, leftPartWidth, rightPartWidth } = getColumnsInfo()
+
+    const { width: stageWidth, height: stageHeight } = getStageAttr()
+
+    // 计算内容高度
+    const contentHeight = tableData.value.length * staticParams.bodyRowHeight
+
+    // 初步估算：不预留滚动条空间
+    const visibleContentWidthNoV = stageWidth - leftPartWidth - rightPartWidth
+    const contentHeightNoH = stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight
+    const prelimMaxX = Math.max(0, totalWidth - leftPartWidth - rightPartWidth - visibleContentWidthNoV)
+    const prelimMaxY = Math.max(0, contentHeight - contentHeightNoH)
+    const verticalScrollbarSpace = prelimMaxY > 0 ? staticParams.scrollbarSize : 0
+    const horizontalScrollbarSpace = prelimMaxX > 0 ? staticParams.scrollbarSize : 0
+    // 复算：考虑另一条滚动条占位
+    const visibleContentWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarSpace
+    const maxHorizontalScroll = Math.max(0, totalWidth - leftPartWidth - rightPartWidth - visibleContentWidth)
+    const maxVerticalScroll = Math.max(
+        0,
+        contentHeight - (stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - horizontalScrollbarSpace)
+    )
+
+    return { maxHorizontalScroll, maxVerticalScroll }
 }
 
 /**
@@ -200,9 +231,9 @@ export const updateScrollPositions = () => {
  */
 export const updateHorizontalScroll = (offsetX: number) => {
     if (!stageVars.stage || !headerVars.centerHeaderGroup || !bodyVars.centerBodyGroup) return
-    const { maxScrollX } = getScrollLimits()
+    const { maxHorizontalScroll } = calculateScrollRange()
     const { leftPartWidth } = getColumnsInfo()
-    scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX + offsetX, 0, maxScrollX)
+    scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX + offsetX, 0, maxHorizontalScroll)
     const headerX = leftPartWidth - scrollbarVars.stageScrollX
     const centerX = -scrollbarVars.stageScrollX
 
@@ -231,9 +262,9 @@ export const updateVerticalScroll = (offsetY: number) => {
     const actualOffsetY = offsetY
     
     
-    const { maxScrollY } = getScrollLimits()
+    const { maxVerticalScroll } = calculateScrollRange()
 
-    scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxScrollY)
+    scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxVerticalScroll)
     const oldVisibleStart = bodyVars.visibleRowStart
 
     const oldVisibleEnd = bodyVars.visibleRowEnd
@@ -320,23 +351,23 @@ export const updateScrollbarPosition = () => {
     if (!stageVars.stage) return
 
     const { width: stageWidth, height: stageHeight } = getStageAttr()
-    const { maxScrollX, maxScrollY } = getScrollLimits()
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
     // 更新垂直滚动条位置
-    if (scrollbarVars.verticalScrollbarThumb && maxScrollY > 0) {
+    if (scrollbarVars.verticalScrollbarThumb && maxVerticalScroll > 0) {
         const trackHeight =
-            stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - (maxScrollX > 0 ? staticParams.scrollbarSize : 0)
+            stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
         const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
-        const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxScrollY) * (trackHeight - thumbHeight)
+        const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
         scrollbarVars.verticalScrollbarThumb.y(thumbY)
     }
 
     // 更新水平滚动条位置
-    if (scrollbarVars.horizontalScrollbarThumb && maxScrollX > 0) {
+    if (scrollbarVars.horizontalScrollbarThumb && maxHorizontalScroll > 0) {
         const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
-        const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - (maxScrollY > 0 ? staticParams.scrollbarSize : 0)
+        const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - (maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0)
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
-        const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
+        const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
         scrollbarVars.horizontalScrollbarThumb.x(thumbX)
     }
 
@@ -353,7 +384,7 @@ export const drawVerticalScrollbarPart = () => {
 
     const { width: stageWidth, height: stageHeight } = getStageAttr()
 
-    const { maxScrollX, maxScrollY } = getScrollLimits()
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
     // 绘制垂直滚动条顶部遮罩（覆盖表头部分）
     createUnifiedCellRect({
@@ -374,7 +405,7 @@ export const drawVerticalScrollbarPart = () => {
         createUnifiedCellRect({
             name: 'vertical-scrollbar-bottom-mask',
             x: stageWidth - staticParams.scrollbarSize,
-            y: stageHeight - getSummaryRowHeight() - (maxScrollX > 0 ? staticParams.scrollbarSize : 0),
+            y: stageHeight - getSummaryRowHeight() - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0),
             width: staticParams.scrollbarSize,
             height: getSummaryRowHeight(),
             fill: staticParams.summaryBackground,
@@ -391,7 +422,7 @@ export const drawVerticalScrollbarPart = () => {
         x: stageWidth - staticParams.scrollbarSize,
         y: staticParams.headerRowHeight,
         width: staticParams.scrollbarSize,
-        height: stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - (maxScrollX > 0 ? staticParams.scrollbarSize : 0),
+        height: stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0),
         fill: staticParams.scrollbarBackground,
         stroke: staticParams.borderColor,
         strokeWidth: 1,
@@ -401,10 +432,10 @@ export const drawVerticalScrollbarPart = () => {
 
     // 计算垂直滚动条高度
     const trackHeight =
-        stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - (maxScrollX > 0 ? staticParams.scrollbarSize : 0)
+        stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
     const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
     // 计算垂直滚动条 Y 坐标
-    const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxScrollY) * (trackHeight - thumbHeight)
+    const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
 
     // 绘制垂直滚动条滑块
     scrollbarVars.verticalScrollbarThumb = createUnifiedCellRect({
@@ -466,9 +497,9 @@ const setupHorizontalScrollbarEvents = () => {
 export const drawHorizontalScrollbarPart = () => {
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
     const { width: stageWidth, height: stageHeight } = getStageAttr()
-    const { maxScrollX, maxScrollY } = getScrollLimits()
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
-    const verticalScrollbarSpaceForHorizontal = maxScrollY > 0 ? staticParams.scrollbarSize : 0
+    const verticalScrollbarSpaceForHorizontal = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     // 绘制水平滚动条轨道
     createUnifiedCellRect({
         name: 'horizontal-scrollbar-track',
@@ -485,11 +516,11 @@ export const drawHorizontalScrollbarPart = () => {
 
     // 计算水平滚动条宽度
     const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
-    const verticalScrollbarSpaceForThumb = maxScrollY > 0 ? staticParams.scrollbarSize : 0
+    const verticalScrollbarSpaceForThumb = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     // 计算水平滚动条宽度
     const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarSpaceForThumb
     const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
-    const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
+    const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
 
     // 绘制水平滚动条滑块
     scrollbarVars.horizontalScrollbarThumb = createUnifiedCellRect({
