@@ -325,7 +325,7 @@ export const createUnifiedCellRect = (config: {
     config.group.add(rect)
     return rect
 }
-
+// TODO drawUnifiedText 和 createUnifiedCellText 文字位置要统一
 /**
  * 创建统一单元格文本 - 支持 Header 和 Summary
  * @param {Object} config - 配置参数
@@ -415,8 +415,6 @@ export const getCellDisplayValue = (
                 : undefined
     return String(rawValue ?? '')
 }
-
-// 节点回收逻辑迁移至 pool-handler.ts
 
 /**
  * 设置指针样式的辅助函数
