@@ -190,7 +190,8 @@ export const updateScrollPositions = () => {
     )
         return
     const centerX = -scrollbarVars.stageScrollX
-    const headerX = -scrollbarVars.stageScrollX
+    const { leftPartWidth } = getColumnsInfo()
+    const headerX = leftPartWidth - scrollbarVars.stageScrollX
 
     // 主体相关 - 更新滚动位置
     /**
@@ -220,14 +221,6 @@ export const updateScrollPositions = () => {
      * 中间汇总组：在裁剪组中，只需要更新x位置跟随滚动
      * @returns {void}
      */
-    if (summaryVars.leftSummaryGroup) {
-        // 左侧汇总组：固定位置，不需要更新（与左侧表头一样）
-        // 位置已在创建时设置，保持不变
-    }
-    if (summaryVars.rightSummaryGroup) {
-        // 右侧汇总组：固定位置，不需要更新（与右侧表头一样）
-        // 位置已在创建时设置，保持不变
-    }
     if (summaryVars.centerSummaryGroup) {
         // 中间汇总组：在裁剪组中，需要跟随水平滚动（与中间表头一致）
         summaryVars.centerSummaryGroup.x(headerX)
@@ -237,7 +230,7 @@ export const updateScrollPositions = () => {
     updateScrollbarPosition()
 
     // 水平滚动时也需要重绘固定层
-    scheduleLayersBatchDraw(['body', 'fixed', 'scrollbar', 'summary'])
+    scheduleLayersBatchDraw(['header', 'body', 'fixed', 'scrollbar', 'summary'])
     // updateFilterDropdownPositionsInTable()
     // updateSummaryDropdownPositionsInTable()
 }

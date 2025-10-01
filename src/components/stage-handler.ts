@@ -447,8 +447,11 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
         const { maxHorizontalScroll } = calculateScrollRange()
         const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
-        const { width: stageWidth } = getStageSize()
-        const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - staticParams.scrollbarSize
+        const { width: stageWidth, height: stageHeight } = getStageSize()
+        // Account for vertical scrollbar only if present
+        const { maxVerticalScroll } = calculateScrollRange()
+        const verticalScrollbarSpace = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
+        const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarSpace
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
         const scrollRatio = deltaX / (visibleWidth - thumbWidth)
         const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxHorizontalScroll
