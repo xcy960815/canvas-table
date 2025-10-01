@@ -5,7 +5,7 @@ import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup,
 
 import { bodyVars, calculateVisibleRows, getColumnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart, getSummaryRowHeight } from './body-handler'
 import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart } from './summary-handler'
-import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions, calculateScrollRange } from './scrollbar-handler'
+import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions, calculateScrollRange, createVerticalScrollbarGroup, createHorizontalScrollbarGroup } from './scrollbar-handler'
 
 
 interface StageVars {
@@ -352,7 +352,7 @@ const rebuildVerticalScrollbarGroup = () => {
     const { maxVerticalScroll } = calculateScrollRange()
 
     if (maxVerticalScroll > 0) {
-        scrollbarVars.verticalScrollbarGroup = new Konva.Group()
+        scrollbarVars.verticalScrollbarGroup = createVerticalScrollbarGroup()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
         drawVerticalScrollbarPart()
     }
@@ -368,7 +368,7 @@ const rebuildHorizontalScrollbarGroup = () => {
     const { maxHorizontalScroll } = calculateScrollRange()
 
     if (maxHorizontalScroll > 0) {
-        scrollbarVars.horizontalScrollbarGroup = new Konva.Group()
+        scrollbarVars.horizontalScrollbarGroup = createHorizontalScrollbarGroup()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.horizontalScrollbarGroup)
         drawHorizontalScrollbarPart()
     }

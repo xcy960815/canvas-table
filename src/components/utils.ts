@@ -447,8 +447,8 @@ interface ClipOptions {
 
 /**
  * 统一的分组创建工厂方法
- * @param {'header' | 'body' | 'summary'} groupType - 分组类型
- * @param {'left' | 'center' | 'right'} position - 左中右位置
+ * @param {'header' | 'body' | 'summary' | 'scrollbar'} groupType - 分组类型
+ * @param {'left' | 'center' | 'right' | 'vertical' | 'horizontal'} position - 左中右位置或滚动条方向
  * @param {number} x - x坐标
  * @param {number} y - y坐标
  * @param {Object} [options] - 可选配置（如裁剪参数）
@@ -459,14 +459,16 @@ interface ClipOptions {
  * @returns {Konva.Group}
  */
 export const createGroup = (
-    groupType: 'header' | 'body' | 'summary',
-    position: 'left' | 'center' | 'right',
-    x: number,
-    y: number,
+    groupType: 'header' | 'body' | 'summary' | 'scrollbar',
+    position: 'left' | 'center' | 'right' | 'vertical' | 'horizontal',
+    x: number = 0,
+    y: number = 0,
     clip?: ClipOptions
 ): Konva.Group => {
 
-    const groupName = `${position}-${groupType}${clip ? '-clip' : ''}-group`
+    const groupName = groupType === 'scrollbar' 
+        ? `${position}-${groupType}-group`
+        : `${position}-${groupType}${clip ? '-clip' : ''}-group`
 
     const groupConfig: Konva.GroupConfig = {
         x: position === 'left' ? 0 : x, // 左侧固定列的x永远为0

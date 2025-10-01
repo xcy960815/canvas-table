@@ -9,6 +9,7 @@ import {
     setPointerStyle,
     constrainToRange,
     createUnifiedCellRect,
+    createGroup,
 } from './utils'
 
 interface ScrollbarVars {
@@ -93,6 +94,22 @@ export const scrollbarVars: ScrollbarVars = {
      */
     stageScrollX: 0,
 
+}
+
+/**
+ * 创建垂直滚动条组
+ * @returns {Konva.Group} 垂直滚动条组
+ */
+export const createVerticalScrollbarGroup = (): Konva.Group => {
+    return createGroup('scrollbar', 'vertical')
+}
+
+/**
+ * 创建水平滚动条组
+ * @returns {Konva.Group} 水平滚动条组
+ */
+export const createHorizontalScrollbarGroup = (): Konva.Group => {
+    return createGroup('scrollbar', 'horizontal')
 }
 
 /**
