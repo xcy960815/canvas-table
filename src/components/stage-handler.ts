@@ -3,9 +3,9 @@ import { staticParams, tableData } from "./parameter"
 import { clearPool, constrainToRange, getTableContainer, setPointerStyle, createGroup } from './utils'
 import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup, createHeaderClipGroup, drawHeaderPart, headerVars } from './header-handler'
 
-import { bodyVars, calculateVisibleRows, getScrollLimits, getColumnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart, getSummaryRowHeight } from './body-handler'
+import { bodyVars, calculateVisibleRows, getColumnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart, getSummaryRowHeight } from './body-handler'
 import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart } from './summary-handler'
-import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions } from './scrollbar-handler'
+import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions, calculateScrollRange } from './scrollbar-handler'
 
 
 interface StageVars {
@@ -130,14 +130,14 @@ export const initStage = () => {
     // ========== 滚动条相关 ==========
 
     // 5. 滚动条组（根据滚动需求创建）
-    const { maxScrollX, maxScrollY } = getScrollLimits()
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
-    if (maxScrollY > 0 && !scrollbarVars.verticalScrollbarGroup) {
+    if (maxVerticalScroll > 0 && !scrollbarVars.verticalScrollbarGroup) {
         scrollbarVars.verticalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
     }
 
-    if (maxScrollX > 0 && !scrollbarVars.horizontalScrollbarGroup) {
+    if (maxHorizontalScroll > 0 && !scrollbarVars.horizontalScrollbarGroup) {
         scrollbarVars.horizontalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.horizontalScrollbarGroup)
     }
@@ -194,9 +194,9 @@ export const refreshTable = (resetScroll: boolean) => {
         scrollbarVars.stageScrollX = 0
         scrollbarVars.stageScrollY = 0
     } else {
-        const { maxScrollX, maxScrollY } = getScrollLimits()
-        scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX, 0, maxScrollX)
-        scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY, 0, maxScrollY)
+        const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
+        scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX, 0, maxHorizontalScroll)
+        scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY, 0, maxVerticalScroll)
     }
     clearGroups()
     rebuildGroups()
@@ -209,8 +209,8 @@ export const refreshTable = (resetScroll: boolean) => {
 const rebuildHeaderGroups = () => {
     if (!headerVars.headerLayer) return
     const { width: stageWidth, } = getStageAttr()
-    const { maxScrollY } = getScrollLimits()
-    const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
+    const { maxVerticalScroll } = calculateScrollRange()
+    const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
     // 为中间表头也创建裁剪组，防止表头横向滚动时遮挡固定列
     const headerClipGroup = createHeaderClipGroup(0, 0, {
@@ -243,9 +243,9 @@ const rebuildBodyGroups = () => {
     if (!bodyVars.bodyLayer || !bodyVars.fixedBodyLayer) return
     const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
     const { width: stageWidth, height: stageHeight } = getStageAttr()
-    const { maxScrollX, maxScrollY } = getScrollLimits()
-    const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
-    const horizontalScrollbarHeight = maxScrollX > 0 ? staticParams.scrollbarSize : 0
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
+    const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
+    const horizontalScrollbarHeight = maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0
     // 为中间可滚动区域创建裁剪组，防止遮挡固定列
     const bodyClipGroupHeight = stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - horizontalScrollbarHeight
     const bodyClipGroupWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarWidth
@@ -312,9 +312,9 @@ const rebuildSummaryGroups = () => {
     if (staticParams.enableSummary) {
         const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
         const { width: stageWidth, height: stageHeight } = getStageAttr()
-        const { maxScrollX, maxScrollY } = getScrollLimits()
-        const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
-        const horizontalScrollbarHeight = maxScrollX > 0 ? staticParams.scrollbarSize : 0
+        const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
+        const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
+        const horizontalScrollbarHeight = maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0
         const y = stageHeight - getSummaryRowHeight() - horizontalScrollbarHeight
         const centerSummaryClipGroup = createSummaryClipGroup(0, y, {
             x: 0,
@@ -358,16 +358,16 @@ export const rebuildGroups = () => {
     rebuildHeaderGroups()
     rebuildBodyGroups()
     rebuildSummaryGroups()
-    const { maxScrollX, maxScrollY } = getScrollLimits()
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
     // 滚动条相关 - 绘制滚动条
-    if (maxScrollY > 0) {
+    if (maxVerticalScroll > 0) {
         scrollbarVars.verticalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
         drawVerticalScrollbarPart()
     }
 
-    if (maxScrollX > 0) {
+    if (maxHorizontalScroll > 0) {
         scrollbarVars.horizontalScrollbarGroup = new Konva.Group()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.horizontalScrollbarGroup)
         drawHorizontalScrollbarPart()
@@ -400,19 +400,19 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     // 手动拖拽导致的垂直滚动
     if (scrollbarVars.isDraggingVerticalThumb) {
         const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
-        const { maxScrollY, maxScrollX } = getScrollLimits()
+        const { maxVerticalScroll, maxHorizontalScroll } = calculateScrollRange()
         const { height: stageHeight } = getStageAttr()
         const trackHeight =
             stageHeight -
             staticParams.headerRowHeight -
             (staticParams.enableSummary ? staticParams.summaryRowHeight : 0) -
-            (maxScrollX > 0 ? staticParams.scrollbarSize : 0)
+            (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
         const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
         const scrollRatio = deltaY / (trackHeight - thumbHeight)
-        const newScrollY = scrollbarVars.dragStartScrollY + scrollRatio * maxScrollY
+        const newScrollY = scrollbarVars.dragStartScrollY + scrollRatio * maxVerticalScroll
 
         const oldScrollY = scrollbarVars.stageScrollY
-        scrollbarVars.stageScrollY = constrainToRange(newScrollY, 0, maxScrollY)
+        scrollbarVars.stageScrollY = constrainToRange(newScrollY, 0, maxVerticalScroll)
 
         // 检查是否需要重新渲染虚拟滚动内容
         const oldVisibleStart = bodyVars.visibleRowStart
@@ -439,15 +439,15 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     // 手动拖拽导致的水平滚动
     if (scrollbarVars.isDraggingHorizontalThumb) {
         const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
-        const { maxScrollX } = getScrollLimits()
+        const { maxHorizontalScroll } = calculateScrollRange()
         const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
         const { width: stageWidth } = getStageAttr()
         const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - staticParams.scrollbarSize
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
         const scrollRatio = deltaX / (visibleWidth - thumbWidth)
-        const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxScrollX
+        const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxHorizontalScroll
 
-        scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxScrollX)
+        scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxHorizontalScroll)
         updateScrollPositions()
         return
     }
