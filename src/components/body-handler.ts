@@ -132,7 +132,12 @@ const sumWidth = (columns: Array<GroupStore.GroupOption | DimensionStore.Dimensi
 export const getColumnsInfo = () => {
     const xAxisFields = staticParams.xAxisFields
     const yAxisFields = staticParams.yAxisFields
-    const tableColumns = xAxisFields.concat(yAxisFields).map((columnOption, index) => ({ ...columnOption, colIndex: index }))
+    const tableColumns = xAxisFields.concat(yAxisFields).map((columnOption, index) => ({
+        ...columnOption,
+        align: columnOption.align ?? 'left',
+        verticalAlign: columnOption.verticalAlign ?? 'middle',
+        colIndex: index
+    }))
 
     // 计算滚动条预留宽度 高度
     // const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
@@ -263,6 +268,7 @@ const drawNormalCell = (
         width: cellWidth,
         height: cellHeight,
         fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
+        // fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
         stroke: staticParams.borderColor,
         strokeWidth: 1
     })
@@ -285,8 +291,8 @@ const drawNormalCell = (
         fontSize: bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
-        align: columnOption.columnName === '__index__' ? 'left' : (columnOption.align || 'left'),
-        verticalAlign: 'middle',
+        align: columnOption.align ?? 'left',
+        verticalAlign: columnOption.verticalAlign ?? 'middle',
         cellHeight
     })
     bodyGroup.add(cellText)
