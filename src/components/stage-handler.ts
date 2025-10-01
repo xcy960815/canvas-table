@@ -1,11 +1,10 @@
 import Konva from 'konva'
 import { staticParams, tableData } from "./parameter"
-import { constrainToRange, getTableContainer, setPointerStyle, createGroup } from './utils'
-import { clearPool } from './pool-handler'
+import { constrainToRange, getTableContainer, setPointerStyle, clearPool } from './utils'
 import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup, createHeaderClipGroup, drawHeaderPart, headerVars } from './header-handler'
 
-import { bodyVars, calculateVisibleRows, getColumnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart, getSummaryRowHeight } from './body-handler'
-import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart } from './summary-handler'
+import { bodyVars, calculateVisibleRows, getColumnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart } from './body-handler'
+import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart, getSummaryRowHeight } from './summary-handler'
 import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions, calculateScrollRange, createVerticalScrollbarGroup, createHorizontalScrollbarGroup } from './scrollbar-handler'
 
 
@@ -26,7 +25,7 @@ export const stageVars: StageVars = {
  * 获取 Stage 的属性
  * @returns {Object} Stage 属性对象
  */
-export const getStageAttr = () => {
+export const getStageSize = () => {
     if (!stageVars.stage) return { width: 0, height: 0 }
     return {
         width: stageVars.stage.width(),
@@ -45,17 +44,6 @@ export const clearGroups = () => {
     // 主体相关
     bodyVars.bodyLayer?.destroyChildren()
     bodyVars.fixedBodyLayer?.destroyChildren()
-
-    // 汇总相关
-    summaryVars.summaryLayer?.destroyChildren()
-
-    // ========== 滚动条相关 ==========
-    scrollbarVars.scrollbarLayer?.destroyChildren()
-    scrollbarVars.scrollbarLayer?.destroyChildren()
-    scrollbarVars.verticalScrollbarGroup = null
-    scrollbarVars.horizontalScrollbarGroup = null
-    scrollbarVars.verticalScrollbarThumb = null
-    scrollbarVars.horizontalScrollbarThumb = null
     // 清理 Body 对象池
     clearPool(bodyVars.leftBodyPools.cellRects)
     clearPool(bodyVars.leftBodyPools.cellTexts)
@@ -63,28 +51,24 @@ export const clearGroups = () => {
     clearPool(bodyVars.centerBodyPools.cellTexts)
     clearPool(bodyVars.rightBodyPools.cellRects)
     clearPool(bodyVars.rightBodyPools.cellTexts)
-
-    /**
-     * 重置单元格选择
-     * @returns {void}
-     */
+    // 重置单元格选择与虚拟滚动状态
     bodyVars.highlightRect = null
-
-    /**
-     * 重置虚拟滚动状态
-     * @returns {void}
-     */
     bodyVars.visibleRowStart = 0
     bodyVars.visibleRowEnd = 0
     bodyVars.visibleRowCount = 0
 
-    /**
-     * 重置汇总组引用
-     * @returns {void}
-     */
+    // 汇总相关
+    summaryVars.summaryLayer?.destroyChildren()
     summaryVars.leftSummaryGroup = null
     summaryVars.centerSummaryGroup = null
     summaryVars.rightSummaryGroup = null
+
+    // 滚动条相关
+    scrollbarVars.scrollbarLayer?.destroyChildren()
+    scrollbarVars.verticalScrollbarGroup = null
+    scrollbarVars.horizontalScrollbarGroup = null
+    scrollbarVars.verticalScrollbarThumb = null
+    scrollbarVars.horizontalScrollbarThumb = null
 }
 
 /**
@@ -171,19 +155,23 @@ export const destroyStage = () => {
     // 主体相关
     bodyVars.bodyLayer = null
     bodyVars.fixedBodyLayer = null
+    bodyVars.highlightRect = null
+    bodyVars.visibleRowStart = 0
+    bodyVars.visibleRowEnd = 0
+    bodyVars.visibleRowCount = 0
 
     // 汇总相关
     summaryVars.summaryLayer = null
+    summaryVars.leftSummaryGroup = null
+    summaryVars.centerSummaryGroup = null
+    summaryVars.rightSummaryGroup = null
 
-    // ========== 滚动条相关 ==========
+    // 滚动条相关
     scrollbarVars.scrollbarLayer = null
     scrollbarVars.verticalScrollbarGroup = null
     scrollbarVars.horizontalScrollbarGroup = null
     scrollbarVars.verticalScrollbarThumb = null
     scrollbarVars.horizontalScrollbarThumb = null
-
-    // 其他
-    bodyVars.highlightRect = null
 }
 
 /**
@@ -209,7 +197,7 @@ export const refreshTable = (resetScroll: boolean) => {
  */
 const rebuildHeaderGroup = () => {
     if (!headerVars.headerLayer) return
-    const { width: stageWidth, } = getStageAttr()
+    const { width: stageWidth, } = getStageSize()
     const { maxVerticalScroll } = calculateScrollRange()
     const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
@@ -243,7 +231,7 @@ const rebuildHeaderGroup = () => {
 const rebuildBodyGroup = () => {
     if (!bodyVars.bodyLayer || !bodyVars.fixedBodyLayer) return
     const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
-    const { width: stageWidth, height: stageHeight } = getStageAttr()
+    const { width: stageWidth, height: stageHeight } = getStageSize()
     const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
     const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     const horizontalScrollbarHeight = maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0
@@ -312,7 +300,7 @@ const rebuildSummaryGroup = () => {
     // 创建汇总行组（完全参考header的实现方式）
     if (staticParams.enableSummary) {
         const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
-        const { width: stageWidth, height: stageHeight } = getStageAttr()
+        const { width: stageWidth, height: stageHeight } = getStageSize()
         const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
         const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
         const horizontalScrollbarHeight = maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0
@@ -419,7 +407,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     if (scrollbarVars.isDraggingVerticalThumb) {
         const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
         const { maxVerticalScroll, maxHorizontalScroll } = calculateScrollRange()
-        const { height: stageHeight } = getStageAttr()
+        const { height: stageHeight } = getStageSize()
         const trackHeight =
             stageHeight -
             staticParams.headerRowHeight -
@@ -459,7 +447,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
         const { maxHorizontalScroll } = calculateScrollRange()
         const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
-        const { width: stageWidth } = getStageAttr()
+        const { width: stageWidth } = getStageSize()
         const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - staticParams.scrollbarSize
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
         const scrollRatio = deltaX / (visibleWidth - thumbWidth)

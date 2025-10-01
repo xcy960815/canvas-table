@@ -1,9 +1,8 @@
-import { ref, type PropType } from 'vue'
+import type { PropType } from 'vue'
 
 const defaultFontFamily = 'Arial, sans-serif'
 
 export const tableProps = {
-  // ========== 数据相关 Props ==========
   /**
    * 图表标题
    */
@@ -36,11 +35,6 @@ export const tableProps = {
     default: () => []
   },
 
-  // ========== 功能相关 Props ==========
-  /**
-   * 是否启用汇总
-   */
-  enableSummary: { type: Boolean, default: false },
   /**
    * 缓冲行数 - 减少缓冲行数以提升性能
    */
@@ -139,6 +133,10 @@ export const tableProps = {
    */
   borderColor: { type: String, default: '#dcdfe6' },
 
+  /**
+   * 是否启用汇总
+   */
+  enableSummary: { type: Boolean, default: false },
   /**
    * 汇总高度
    */
@@ -269,4 +267,6 @@ export const staticParams: StaticParams = {
 /**
 * 表格数据
 */
-export const tableData = ref<Array<ChartDataVo.ChartData>>([])
+export const tableData: { value: Array<ChartDataVo.ChartData> } = {
+  value: []
+}

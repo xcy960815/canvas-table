@@ -69,6 +69,12 @@ export const createSummaryRightGroup = (x: number, y: number) => createGroup('su
 export const createSummaryClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('summary', 'center', x, y, clipOptions)
 
 /**
+ * 获取汇总行高度
+ * @returns {number}
+ */
+export const getSummaryRowHeight = () => (staticParams.enableSummary ? staticParams.summaryRowHeight : 0)
+
+/**
  * 汇总行选择状态：列名 -> 选中的规则 - 单独的响应式变量
  */
 const summaryState = reactive<Record<string, string>>({})

@@ -2,6 +2,7 @@ import Konva from "konva";
 import { createGroup, drawUnifiedRect, drawUnifiedText, getCellDisplayValue, truncateText } from "./utils";
 import { type KonvaNodePools, recoverKonvaNode } from './utils'
 import { stageVars, getStageSize } from "./stage-handler";
+import { getSummaryRowHeight } from './summary-handler'
 import { scrollbarVars } from "./scrollbar-handler";
 import { staticParams, tableData } from "./parameter";
 
@@ -87,7 +88,7 @@ export const createLeftBodyClipGroup = (x: number, y: number, clipOptions: ClipO
 export const createCenterBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'center', x, y, clipOptions)
 export const createRightBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'right', x, y, clipOptions)
 
-export const getSummaryRowHeight = () => (staticParams.enableSummary ? staticParams.summaryRowHeight : 0)
+// 汇总行高度已迁移到 summary-handler
 
 /**
  * 计算可视区域数据的起始行和结束行

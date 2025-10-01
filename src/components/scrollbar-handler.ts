@@ -1,9 +1,9 @@
 import Konva from "konva";
-import { stageVars, getStageAttr } from "./stage-handler";
+import { stageVars, getStageSize } from "./stage-handler";
 import { staticParams, tableData } from "./parameter";
 import { headerVars } from "./header-handler";
-import { bodyVars, getSummaryRowHeight, calculateVisibleRows, getColumnsInfo, drawBodyPart } from "./body-handler";
-import { summaryVars } from "./summary-handler";
+import { bodyVars, calculateVisibleRows, getColumnsInfo, drawBodyPart } from "./body-handler";
+import { summaryVars, getSummaryRowHeight } from "./summary-handler";
 import {
     getTableContainer,
     setPointerStyle,
@@ -120,7 +120,7 @@ export const calculateScrollRange = () => {
     if (!stageVars.stage) return { maxHorizontalScroll: 0, maxVerticalScroll: 0 }
     const { totalWidth, leftPartWidth, rightPartWidth } = getColumnsInfo()
 
-    const { width: stageWidth, height: stageHeight } = getStageAttr()
+    const { width: stageWidth, height: stageHeight } = getStageSize()
 
     // 计算内容高度
     const contentHeight = tableData.value.length * staticParams.bodyRowHeight
@@ -367,7 +367,7 @@ const setupVerticalScrollbarEvents = () => {
 export const updateScrollbarPosition = () => {
     if (!stageVars.stage) return
 
-    const { width: stageWidth, height: stageHeight } = getStageAttr()
+    const { width: stageWidth, height: stageHeight } = getStageSize()
     const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
     // 更新垂直滚动条位置
@@ -399,7 +399,7 @@ export const drawVerticalScrollbarPart = () => {
     
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
 
-    const { width: stageWidth, height: stageHeight } = getStageAttr()
+    const { width: stageWidth, height: stageHeight } = getStageSize()
 
     const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
@@ -513,7 +513,7 @@ const setupHorizontalScrollbarEvents = () => {
  */
 export const drawHorizontalScrollbarPart = () => {
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
-    const { width: stageWidth, height: stageHeight } = getStageAttr()
+    const { width: stageWidth, height: stageHeight } = getStageSize()
     const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
     const verticalScrollbarSpaceForHorizontal = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0

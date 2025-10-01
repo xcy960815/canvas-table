@@ -61,8 +61,6 @@ const filterState = reactive<Record<string, Set<string>>>({})
 /**
  * 排序状态 - 单独的响应式变量
  */
-export const sortColumns = ref<SortColumn[]>([])
-
 export const headerVars: HeaderVars = {
     /**
      * 表头层
@@ -91,6 +89,8 @@ export const headerVars: HeaderVars = {
 
     resizeStartWidth: 0
 }
+
+export const sortColumns = ref<SortColumn[]>([])
 
 /**
  * 创建Header组 - 快捷方法
