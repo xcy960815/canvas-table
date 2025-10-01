@@ -1,7 +1,7 @@
 import Konva from 'konva'
 import { reactive } from 'vue'
 import { webworker } from '@/composables/useWebworker';
-import { createUnifiedCellRect, createUnifiedCellText, createGroup, getRuleLabel, truncateText } from "./utils"
+import { createUnifiedCellRect, createUnifiedCellText, createGroup, truncateText } from "./utils"
 import { stageVars } from './stage-handler'
 import { setPointerStyle } from "./utils"
 import { staticParams, tableData } from './parameter'
@@ -142,6 +142,32 @@ const computeSummaryValueForColumn = async (
         }
     }
 }
+
+
+/**
+ * 汇总规则的中文标签
+ * @param {string} rule - 汇总规则
+ * @returns {string} 汇总规则的中文标签
+ */
+const getRuleLabel = (rule: string) => {
+    switch (rule) {
+        case 'max':
+            return '最大'
+        case 'min':
+            return '最小'
+        case 'avg':
+            return '平均'
+        case 'sum':
+            return '求和'
+        case 'filled':
+            return '已填写'
+        case 'nofilled':
+            return '未填写'
+        default:
+            return ''
+    }
+}
+
 /**
  * 绘制汇总部分（固定在底部，风格与表头一致，但使用 bodyTextColor）
  * @param {Konva.Group | null} summaryGroup - 分组

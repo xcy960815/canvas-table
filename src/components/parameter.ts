@@ -270,9 +270,3 @@ export const staticParams: StaticParams = {
 * 表格数据
 */
 export const tableData = ref<Array<ChartDataVo.ChartData>>([])
-
-
-/**
- * 表格列
- */
-export const tableColumns = ref<Array<GroupStore.GroupOption | DimensionStore.DimensionOption>>([])

@@ -86,7 +86,6 @@ export const clearGroups = () => {
     summaryVars.rightSummaryGroup = null
 }
 
-
 /**
  * 初始化 Stage 和所有 Layer
  * @returns {void}
@@ -212,28 +211,28 @@ const rebuildHeaderGroups = () => {
     const { width: stageWidth, } = getStageAttr()
     const { maxScrollY } = getScrollLimits()
     const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
-    const { leftCols, centerCols, rightCols, leftWidth, rightWidth } = getColumnsInfo()
+    const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
     // 为中间表头也创建裁剪组，防止表头横向滚动时遮挡固定列
     const headerClipGroup = createHeaderClipGroup(0, 0, {
         x: 0,
         y: 0,
-        width: stageWidth - rightWidth - verticalScrollbarWidth,
+        width: stageWidth - rightPartWidth - verticalScrollbarWidth,
         height: staticParams.headerRowHeight
     })
 
     headerVars.headerLayer.add(headerClipGroup)
 
     headerVars.leftHeaderGroup = createHeaderLeftGroup(0, 0)
-    headerVars.centerHeaderGroup = createHeaderCenterGroup(leftWidth, 0)
-    headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - rightWidth - verticalScrollbarWidth, 0)
+    headerVars.centerHeaderGroup = createHeaderCenterGroup(leftPartWidth, 0)
+    headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - rightPartWidth - verticalScrollbarWidth, 0)
     headerClipGroup.add(headerVars.centerHeaderGroup)
 
     headerVars.headerLayer.add(headerVars.leftHeaderGroup, headerVars.rightHeaderGroup) // 固定表头必须在表头层，确保不被body层遮挡
 
     // 绘制表头
-    drawHeaderPart(headerVars.leftHeaderGroup, leftCols)
-    drawHeaderPart(headerVars.centerHeaderGroup, centerCols)
-    drawHeaderPart(headerVars.rightHeaderGroup, rightCols)
+    drawHeaderPart(headerVars.leftHeaderGroup, leftColumns)
+    drawHeaderPart(headerVars.centerHeaderGroup, centerColumns)
+    drawHeaderPart(headerVars.rightHeaderGroup, rightColumns)
 }
 
 /**
@@ -242,15 +241,15 @@ const rebuildHeaderGroups = () => {
  */
 const rebuildBodyGroups = () => {
     if (!bodyVars.bodyLayer || !bodyVars.fixedBodyLayer) return
-    const { leftCols, centerCols, rightCols, leftWidth, rightWidth } = getColumnsInfo()
+    const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
     const { width: stageWidth, height: stageHeight } = getStageAttr()
     const { maxScrollX, maxScrollY } = getScrollLimits()
     const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
     const horizontalScrollbarHeight = maxScrollX > 0 ? staticParams.scrollbarSize : 0
     // 为中间可滚动区域创建裁剪组，防止遮挡固定列
     const bodyClipGroupHeight = stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - horizontalScrollbarHeight
-    const bodyClipGroupWidth = stageWidth - leftWidth - rightWidth - verticalScrollbarWidth
-    const centerBodyClipGroup = createCenterBodyClipGroup(leftWidth, staticParams.headerRowHeight, {
+    const bodyClipGroupWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarWidth
+    const centerBodyClipGroup = createCenterBodyClipGroup(leftPartWidth, staticParams.headerRowHeight, {
         x: 0,
         y: 0,
         width: bodyClipGroupWidth,
@@ -268,17 +267,17 @@ const rebuildBodyGroups = () => {
     const leftBodyClipGroup = createLeftBodyClipGroup(0, staticParams.headerRowHeight, {
         x: 0,
         y: 0,
-        width: leftWidth,
+        width: leftPartWidth,
         height: bodyClipGroupHeight
     })
 
     const rightBodyClipGroup = createRightBodyClipGroup(
-        stageWidth - rightWidth - verticalScrollbarWidth,
+        stageWidth - rightPartWidth - verticalScrollbarWidth,
         staticParams.headerRowHeight,
         {
             x: 0,
             y: 0,
-            width: rightWidth,
+            width: rightPartWidth,
             height: bodyClipGroupHeight
         }
     )
@@ -295,9 +294,9 @@ const rebuildBodyGroups = () => {
     bodyVars.fixedBodyLayer.add(leftBodyClipGroup, rightBodyClipGroup) // 添加裁剪组到固定层
 
     // 主体相关 - 绘制所有主体部分
-    drawBodyPart(bodyVars.leftBodyGroup, leftCols, bodyVars.leftBodyPools)
-    drawBodyPart(bodyVars.centerBodyGroup, centerCols, bodyVars.centerBodyPools)
-    drawBodyPart(bodyVars.rightBodyGroup, rightCols, bodyVars.rightBodyPools)
+    drawBodyPart(bodyVars.leftBodyGroup, leftColumns, bodyVars.leftBodyPools)
+    drawBodyPart(bodyVars.centerBodyGroup, centerColumns, bodyVars.centerBodyPools)
+    drawBodyPart(bodyVars.rightBodyGroup, rightColumns, bodyVars.rightBodyPools)
 
 }
 
@@ -311,7 +310,7 @@ const rebuildSummaryGroups = () => {
 
     // 创建汇总行组（完全参考header的实现方式）
     if (staticParams.enableSummary) {
-        const { leftCols, centerCols, rightCols, leftWidth, rightWidth } = getColumnsInfo()
+        const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()
         const { width: stageWidth, height: stageHeight } = getStageAttr()
         const { maxScrollX, maxScrollY } = getScrollLimits()
         const verticalScrollbarWidth = maxScrollY > 0 ? staticParams.scrollbarSize : 0
@@ -320,22 +319,22 @@ const rebuildSummaryGroups = () => {
         const centerSummaryClipGroup = createSummaryClipGroup(0, y, {
             x: 0,
             y: 0,
-            width: stageWidth - rightWidth - verticalScrollbarWidth,
+            width: stageWidth - rightPartWidth - verticalScrollbarWidth,
             height: getSummaryRowHeight()
         })
 
         summaryVars.summaryLayer.add(centerSummaryClipGroup)
 
         summaryVars.leftSummaryGroup = createSummaryLeftGroup(0, y) // 直接定位到汇总行位置
-        summaryVars.centerSummaryGroup = createSummaryCenterGroup(leftWidth, 0)
-        summaryVars.rightSummaryGroup = createSummaryRightGroup(stageWidth - rightWidth - verticalScrollbarWidth, y)
+        summaryVars.centerSummaryGroup = createSummaryCenterGroup(leftPartWidth, 0)
+        summaryVars.rightSummaryGroup = createSummaryRightGroup(stageWidth - rightPartWidth - verticalScrollbarWidth, y)
 
         centerSummaryClipGroup.add(summaryVars.centerSummaryGroup)
         summaryVars.summaryLayer.add(summaryVars.leftSummaryGroup, summaryVars.rightSummaryGroup)
 
-        drawSummaryPart(summaryVars.leftSummaryGroup, leftCols)
-        drawSummaryPart(summaryVars.centerSummaryGroup, centerCols)
-        drawSummaryPart(summaryVars.rightSummaryGroup, rightCols)
+        drawSummaryPart(summaryVars.leftSummaryGroup, leftColumns)
+        drawSummaryPart(summaryVars.centerSummaryGroup, centerColumns)
+        drawSummaryPart(summaryVars.rightSummaryGroup, rightColumns)
     } else {
         summaryVars.leftSummaryGroup = null
         summaryVars.centerSummaryGroup = null
@@ -426,11 +425,11 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
             Math.abs(scrollbarVars.stageScrollY - oldScrollY) > staticParams.bodyRowHeight * 5
 
         if (needsRerender) {
-            const { leftCols, centerCols, rightCols } = getColumnsInfo()
+            const { leftColumns, centerColumns, rightColumns } = getColumnsInfo()
             // 主体相关 - 重新绘制所有主体部分
-            drawBodyPart(bodyVars.leftBodyGroup, leftCols, bodyVars.leftBodyPools)
-            drawBodyPart(bodyVars.centerBodyGroup, centerCols, bodyVars.centerBodyPools)
-            drawBodyPart(bodyVars.rightBodyGroup, rightCols, bodyVars.rightBodyPools)
+            drawBodyPart(bodyVars.leftBodyGroup, leftColumns, bodyVars.leftBodyPools)
+            drawBodyPart(bodyVars.centerBodyGroup, centerColumns, bodyVars.centerBodyPools)
+            drawBodyPart(bodyVars.rightBodyGroup, rightColumns, bodyVars.rightBodyPools)
         }
 
         updateScrollPositions()
@@ -441,10 +440,10 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     if (scrollbarVars.isDraggingHorizontalThumb) {
         const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
         const { maxScrollX } = getScrollLimits()
-        const { leftWidth, rightWidth, centerWidth } = getColumnsInfo()
+        const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
         const { width: stageWidth } = getStageAttr()
-        const visibleWidth = stageWidth - leftWidth - rightWidth - staticParams.scrollbarSize
-        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
+        const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - staticParams.scrollbarSize
+        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
         const scrollRatio = deltaX / (visibleWidth - thumbWidth)
         const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxScrollX
 

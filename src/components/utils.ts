@@ -367,67 +367,6 @@ export const createUnifiedCellText = (config: {
     return textNode
 }
 
-// ============================================================================
-// 计算相关工具函数 (Calculation Utilities)
-// ============================================================================
-
-/**
- * 计算单元格合并信息
- * @param {Function} spanMethod - 合并方法
- * @param {any} row - 行数据
- * @param {any} columnOption - 列配置
- * @param {number} rowIndex - 行索引
- * @param {number} globalColIndex - 全局列索引
- * @returns {Object} 合并信息
- */
-export const calculateCellSpan = (
-    spanMethod: Function,
-    row: ChartDataVo.ChartData,
-    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
-    rowIndex: number,
-    globalColIndex: number
-) => {
-    const res = spanMethod({ row, column: columnOption, rowIndex, colIndex: globalColIndex })
-    let spanRow = 1
-    let spanCol = 1
-
-    if (Array.isArray(res)) {
-        spanRow = Math.max(0, Number(res[0]) || 0)
-        spanCol = Math.max(0, Number(res[1]) || 0)
-    } else if (res && typeof res === 'object') {
-        spanRow = Math.max(0, Number(res.rowspan) || 0)
-        spanCol = Math.max(0, Number(res.colspan) || 0)
-    }
-
-    // 只要任一维度为 0，即视为被合并覆盖（与常见表格合并语义一致）
-    const coveredBySpanMethod = spanRow === 0 || spanCol === 0
-
-    return { spanRow, spanCol, coveredBySpanMethod }
-}
-
-/**
- * 计算合并单元格的总宽度
- * @param {number} spanCol - 跨列数
- * @param {number} colIndex - 列索引
- * @param {Array<any>} bodyCols - 列配置数组
- * @param {number} columnWidth - 列宽度
- * @returns {number} 合并单元格总宽度
- */
-export const calculateMergedCellWidth = (
-    spanCol: number,
-    colIndex: number,
-    bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
-    columnWidth: number
-) => {
-    if (spanCol <= 1) return columnWidth
-
-    let totalWidth = 0
-    for (let i = 0; i < spanCol && colIndex + i < bodyCols.length; i++) {
-        const colInfo = bodyCols[colIndex + i]
-        totalWidth += colInfo.width || 0
-    }
-    return totalWidth
-}
 
 /**
  * 获取单元格显示值
@@ -488,33 +427,6 @@ export const recoverKonvaNode = (bodyGroup: Konva.Group, pools: KonvaNodePools) 
     rectsToRecover.forEach((rect) => returnToPool(pools.cellRects, rect))
 }
 
-// ============================================================================
-// 汇总相关工具函数 (Summary Utilities)
-// ============================================================================
-
-/**
- * 汇总规则的中文标签
- * @param {string} rule - 汇总规则
- * @returns {string} 汇总规则的中文标签
- */
-export const getRuleLabel = (rule: string) => {
-    switch (rule) {
-        case 'max':
-            return '最大'
-        case 'min':
-            return '最小'
-        case 'avg':
-            return '平均'
-        case 'sum':
-            return '求和'
-        case 'filled':
-            return '已填写'
-        case 'nofilled':
-            return '未填写'
-        default:
-            return ''
-    }
-}
 
 
 /**

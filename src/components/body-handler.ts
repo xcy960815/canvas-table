@@ -1,16 +1,16 @@
 import Konva from "konva";
 import {
-    createGroup, type KonvaNodePools, recoverKonvaNode, calculateCellSpan,
-    calculateMergedCellWidth,
+    type KonvaNodePools,
+    createGroup,
+    recoverKonvaNode,
     drawUnifiedRect,
+    drawUnifiedText,
     getCellDisplayValue,
     truncateText,
-    drawUnifiedText,
 } from "./utils";
 import { stageVars, getStageAttr } from "./stage-handler";
 import { scrollbarVars } from "./scrollbar-handler";
-import { staticParams, tableData, tableColumns } from "./parameter";
-
+import { staticParams, tableData } from "./parameter";
 
 interface BodyVars {
     /**
@@ -51,7 +51,6 @@ interface BodyVars {
     visibleRowCount: number
 
 }
-
 
 export const bodyVars: BodyVars = {
 
@@ -124,6 +123,15 @@ export const calculateVisibleRows = () => {
     )
 }
 /**
+ * 计算列宽总和
+ * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} columns - 列数组
+ * @returns {number} 列宽总和
+ */
+const sumWidth = (columns: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>) => {
+    return columns.reduce((acc, column) => acc + (column.width || 0), 0)
+}
+
+/**
  * 计算左右固定列与中间列的分组与宽度汇总
  * @returns {Object} 分组与宽度汇总
  */
@@ -131,73 +139,38 @@ export const getColumnsInfo = () => {
     const xAxisFields = staticParams.xAxisFields
     const yAxisFields = staticParams.yAxisFields
     const tableColumns = xAxisFields.concat(yAxisFields)
-    if (!stageVars.stage) {
 
-        const leftCols = tableColumns.filter((c) => c.fixed === 'left')
-        const rightCols = tableColumns.filter((c) => c.fixed === 'right')
-        const centerCols = tableColumns.filter((c) => !c.fixed)
-        return {
-            leftCols,
-            centerCols,
-            rightCols,
-            leftWidth: 0,
-            centerWidth: 0,
-            rightWidth: 0,
-            totalWidth: 0
-        }
-    }
     // 计算滚动条预留宽度 高度
-    const { width: stageWidthRaw, height: stageHeightRaw } = getStageAttr()
+    // const { width: stageWidthRaw, height: stageHeightRaw } = getStageAttr()
     // 计算内容高度
-    const contentHeight = tableData.value.length * staticParams.bodyRowHeight
+    // const contentHeight = tableData.value.length * staticParams.bodyRowHeight
     // 计算垂直滚动条预留空间
-    const verticalScrollbarSpace =
-        contentHeight > stageHeightRaw - staticParams.headerRowHeight - staticParams.summaryRowHeight ? staticParams.scrollbarSize : 0
+    // const verticalScrollbarSpace =
+    //     contentHeight > stageHeightRaw - staticParams.headerRowHeight - staticParams.summaryRowHeight ? staticParams.scrollbarSize : 0
     // 计算内容宽度
-    const stageWidth = stageWidthRaw - verticalScrollbarSpace
+    // const stageWidth = stageWidthRaw - verticalScrollbarSpace
 
     // 计算已设置宽度的列的总宽度
-    const fixedWidthColumns = tableColumns.filter((c) => c.width !== undefined)
-    const autoWidthColumns = tableColumns.filter((c) => c.width === undefined)
-    const fixedTotalWidth = fixedWidthColumns.reduce((acc, c) => acc + (c.width || 0), 0)
+    // const fixedWidthColumns = tableColumns.filter((c) => c.width !== undefined)
+    // const autoWidthColumns = tableColumns.filter((c) => c.width === undefined)
+    // const fixedTotalWidth = fixedWidthColumns.reduce((acc, c) => acc + (c.width || 0), 0)
 
     // 计算自动宽度列应该分配的宽度
-    const remainingWidth = Math.max(0, stageWidth - fixedTotalWidth)
-    const rawAutoWidth = autoWidthColumns.length > 0 ? remainingWidth / autoWidthColumns.length : 0
-    const autoColumnWidth = Math.max(staticParams.minAutoColWidth, rawAutoWidth)
-
-    // 为每个列计算最终宽度（支持用户拖拽覆盖）
-    const columnsWithWidth = tableColumns.map((columnOption) => {
-        const overrideWidth = undefined
-        const width =
-            overrideWidth !== undefined
-                ? overrideWidth
-                : columnOption.width !== undefined
-                    ? columnOption.width
-                    : autoColumnWidth
-
-        return { ...columnOption, width }
-    })
-    const leftCols = columnsWithWidth.filter((c) => c.fixed === 'left')
-    const centerCols = columnsWithWidth.filter((c) => !c.fixed)
-    const rightCols = columnsWithWidth.filter((c) => c.fixed === 'right')
-
-    /**
-     * 计算列宽总和
-     * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} columns - 列数组
-     * @returns {number} 列宽总和
-     */
-    const sumWidth = (columns: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>) =>
-        columns.reduce((acc, column) => acc + (column.width || 0), 0)
+    // const remainingWidth = Math.max(0, stageWidth - fixedTotalWidth)
+    // const rawAutoWidth = autoWidthColumns.length > 0 ? remainingWidth / autoWidthColumns.length : 0
+    // const autoColumnWidth = Math.max(staticParams.minAutoColWidth, rawAutoWidth)
+    const leftColumns = tableColumns.map((columnOption, index) => ({ ...columnOption, index })).filter((c) => c.fixed === 'left')
+    const centerColumns = tableColumns.map((columnOption, index) => ({ ...columnOption, index })).filter((c) => !c.fixed)
+    const rightColumns = tableColumns.map((columnOption, index) => ({ ...columnOption, index })).filter((c) => c.fixed === 'right')
 
     return {
-        leftCols,
-        centerCols,
-        rightCols,
-        leftWidth: sumWidth(leftCols),
-        centerWidth: sumWidth(centerCols),
-        rightWidth: sumWidth(rightCols),
-        totalWidth: sumWidth(columnsWithWidth)
+        leftColumns,
+        centerColumns,
+        rightColumns,
+        leftPartWidth: sumWidth(leftColumns),
+        centerPartWidth: sumWidth(centerColumns),
+        rightPartWidth: sumWidth(rightColumns),
+        totalWidth: sumWidth(tableColumns)
     }
 }
 /**
@@ -206,7 +179,7 @@ export const getColumnsInfo = () => {
  */
 export const getScrollLimits = () => {
     if (!stageVars.stage) return { maxScrollX: 0, maxScrollY: 0 }
-    const { totalWidth, leftWidth, rightWidth } = getColumnsInfo()
+    const { totalWidth, leftPartWidth, rightPartWidth } = getColumnsInfo()
 
     const { width: stageWidth, height: stageHeight } = getStageAttr()
 
@@ -214,15 +187,15 @@ export const getScrollLimits = () => {
     const contentHeight = tableData.value.length * staticParams.bodyRowHeight
 
     // 初步估算：不预留滚动条空间
-    const visibleContentWidthNoV = stageWidth - leftWidth - rightWidth
+    const visibleContentWidthNoV = stageWidth - leftPartWidth - rightPartWidth
     const contentHeightNoH = stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight
-    const prelimMaxX = Math.max(0, totalWidth - leftWidth - rightWidth - visibleContentWidthNoV)
+    const prelimMaxX = Math.max(0, totalWidth - leftPartWidth - rightPartWidth - visibleContentWidthNoV)
     const prelimMaxY = Math.max(0, contentHeight - contentHeightNoH)
     const verticalScrollbarSpace = prelimMaxY > 0 ? staticParams.scrollbarSize : 0
     const horizontalScrollbarSpace = prelimMaxX > 0 ? staticParams.scrollbarSize : 0
     // 复算：考虑另一条滚动条占位
-    const visibleContentWidth = stageWidth - leftWidth - rightWidth - verticalScrollbarSpace
-    const maxScrollX = Math.max(0, totalWidth - leftWidth - rightWidth - visibleContentWidth)
+    const visibleContentWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarSpace
+    const maxScrollX = Math.max(0, totalWidth - leftPartWidth - rightPartWidth - visibleContentWidth)
     const maxScrollY = Math.max(
         0,
         contentHeight - (stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - horizontalScrollbarSpace)
@@ -362,6 +335,61 @@ const drawNormalCell = (
 
 
 
+/**
+ * 计算单元格合并信息
+ * @param {Function} spanMethod - 合并方法
+ * @param {ChartDataVo.ChartData} row - 行数据
+ * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
+ * @param {number} rowIndex - 行索引
+ * @returns {Object} 合并信息
+ */
+export const calculateCellSpan = (
+    spanMethod: Function,
+    row: ChartDataVo.ChartData,
+    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
+    rowIndex: number,
+) => {
+    const res = spanMethod({ row, column: columnOption, rowIndex, colIndex: columnOption.index })
+    let spanRow = 1
+    let spanCol = 1
+
+    if (Array.isArray(res)) {
+        spanRow = Math.max(0, Number(res[0]) || 0)
+        spanCol = Math.max(0, Number(res[1]) || 0)
+    } else if (res && typeof res === 'object') {
+        spanRow = Math.max(0, Number(res.rowspan) || 0)
+        spanCol = Math.max(0, Number(res.colspan) || 0)
+    }
+
+    // 只要任一维度为 0，即视为被合并覆盖（与常见表格合并语义一致）
+    const coveredBySpanMethod = spanRow === 0 || spanCol === 0
+
+    return { spanRow, spanCol, coveredBySpanMethod }
+}
+
+/**
+ * 计算合并单元格的总宽度
+ * @param {number} spanCol - 跨列数
+ * @param {number} colIndex - 列索引
+ * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} bodyCols - 列配置数组
+ * @param {number} columnWidth - 列宽度
+ * @returns {number} 合并单元格总宽度
+ */
+export const calculateMergedCellWidth = (
+    spanCol: number,
+    colIndex: number,
+    bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
+    columnWidth: number
+) => {
+    if (spanCol <= 1) return columnWidth
+
+    let totalWidth = 0
+    for (let i = 0; i < spanCol && colIndex + i < bodyCols.length; i++) {
+        const colInfo = bodyCols[colIndex + i]
+        totalWidth += colInfo.width || 0
+    }
+    return totalWidth
+}
 
 /**
  * 渲染单行的所有单元格
@@ -384,10 +412,9 @@ const renderRowCells = (params: {
     bodyGroup: Konva.Group
     spanMethod: NonNullable<typeof staticParams.spanMethod> | null
     hasSpanMethod: boolean
-    globalIndexByColName: Map<string, number>
     bodyFontSize: number
 }) => {
-    const { rowIndex, y, bodyCols, pools, bodyGroup, spanMethod, hasSpanMethod, globalIndexByColName, bodyFontSize } =
+    const { rowIndex, y, bodyCols, pools, bodyGroup, spanMethod, hasSpanMethod, bodyFontSize } =
         params
 
     const row = tableData.value[rowIndex]
@@ -395,7 +422,6 @@ const renderRowCells = (params: {
 
     for (let colIndex = 0; colIndex < bodyCols.length; colIndex++) {
         const columnOption = bodyCols[colIndex]
-
         const result = renderCell({
             pools,
             bodyGroup,
@@ -408,7 +434,6 @@ const renderRowCells = (params: {
             bodyCols,
             spanMethod,
             hasSpanMethod,
-            globalIndexByColName,
             bodyFontSize
         })
 
@@ -448,7 +473,6 @@ const renderCell = (params: {
     bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>
     spanMethod: NonNullable<typeof staticParams.spanMethod> | null
     hasSpanMethod: boolean
-    globalIndexByColName: Map<string, number>
     bodyFontSize: number
 }) => {
     const {
@@ -463,7 +487,6 @@ const renderCell = (params: {
         bodyCols,
         spanMethod,
         hasSpanMethod,
-        globalIndexByColName,
         bodyFontSize
     } = params
 
@@ -476,8 +499,7 @@ const renderCell = (params: {
     let coveredBySpanMethod = false
 
     if (hasSpanMethod && spanMethod) {
-        const globalColIndex = globalIndexByColName.get(columnOption.columnName as string) ?? colIndex
-        const spanInfo = calculateCellSpan(spanMethod, row, columnOption, rowIndex, globalColIndex)
+        const spanInfo = calculateCellSpan(spanMethod, row, columnOption, rowIndex)
         spanRow = spanInfo.spanRow
         spanCol = spanInfo.spanCol
         coveredBySpanMethod = spanInfo.coveredBySpanMethod
@@ -524,11 +546,6 @@ export const drawBodyPart = (
     const bodyFontSize = staticParams.bodyFontSize
     const spanMethod = typeof staticParams.spanMethod === 'function' ? staticParams.spanMethod : null
     const hasSpanMethod = !!spanMethod
-
-    // 建立全局列索引映射
-    const globalIndexByColName = new Map<string, number>()
-    tableColumns.value.forEach((c, idx) => globalIndexByColName.set(c.columnName as string, idx))
-
     // 清理旧节点
     recoverKonvaNode(bodyGroup, pools)
 
@@ -543,7 +560,6 @@ export const drawBodyPart = (
             bodyGroup,
             spanMethod,
             hasSpanMethod,
-            globalIndexByColName,
             bodyFontSize
         })
     }

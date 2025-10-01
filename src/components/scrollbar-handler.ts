@@ -201,9 +201,9 @@ export const updateScrollPositions = () => {
 export const updateHorizontalScroll = (offsetX: number) => {
     if (!stageVars.stage || !headerVars.centerHeaderGroup || !bodyVars.centerBodyGroup) return
     const { maxScrollX } = getScrollLimits()
-    const { leftWidth } = getColumnsInfo()
+    const { leftPartWidth } = getColumnsInfo()
     scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX + offsetX, 0, maxScrollX)
-    const headerX = leftWidth - scrollbarVars.stageScrollX
+    const headerX = leftPartWidth - scrollbarVars.stageScrollX
     const centerX = -scrollbarVars.stageScrollX
 
     // 主体相关 - 中间区域随横向滚动
@@ -245,13 +245,13 @@ export const updateVerticalScroll = (offsetY: number) => {
 
     if (visibleRangeChanged) {
         // 重新渲染可视区域
-        const { leftCols, centerCols, rightCols } = getColumnsInfo()
+        const { leftColumns, centerColumns, rightColumns } = getColumnsInfo()
 
         // 主体相关 - 批量执行重绘操作，减少单独的绘制调用
         const renderOperations = [
-            () => drawBodyPart(bodyVars.leftBodyGroup, leftCols, bodyVars.leftBodyPools),
-            () => drawBodyPart(bodyVars.centerBodyGroup, centerCols, bodyVars.centerBodyPools),
-            () => drawBodyPart(bodyVars.rightBodyGroup, rightCols, bodyVars.rightBodyPools)
+            () => drawBodyPart(bodyVars.leftBodyGroup, leftColumns, bodyVars.leftBodyPools),
+            () => drawBodyPart(bodyVars.centerBodyGroup, centerColumns, bodyVars.centerBodyPools),
+            () => drawBodyPart(bodyVars.rightBodyGroup, rightColumns, bodyVars.rightBodyPools)
         ]
 
         // 执行所有渲染操作
@@ -333,10 +333,10 @@ export const updateScrollbarPosition = () => {
 
     // 更新水平滚动条位置
     if (scrollbarVars.horizontalScrollbarThumb && maxScrollX > 0) {
-        const { leftWidth, rightWidth, centerWidth } = getColumnsInfo()
-        const visibleWidth = stageWidth - leftWidth - rightWidth - (maxScrollY > 0 ? staticParams.scrollbarSize : 0)
-        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
-        const thumbX = leftWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
+        const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
+        const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - (maxScrollY > 0 ? staticParams.scrollbarSize : 0)
+        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
+        const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
         scrollbarVars.horizontalScrollbarThumb.x(thumbX)
     }
 
@@ -484,12 +484,12 @@ export const drawHorizontalScrollbarPart = () => {
     })
 
     // 计算水平滚动条宽度
-    const { leftWidth, rightWidth, centerWidth } = getColumnsInfo()
+    const { leftPartWidth, rightPartWidth, centerPartWidth } = getColumnsInfo()
     const verticalScrollbarSpaceForThumb = maxScrollY > 0 ? staticParams.scrollbarSize : 0
     // 计算水平滚动条宽度
-    const visibleWidth = stageWidth - leftWidth - rightWidth - verticalScrollbarSpaceForThumb
-    const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
-    const thumbX = leftWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
+    const visibleWidth = stageWidth - leftPartWidth - rightPartWidth - verticalScrollbarSpaceForThumb
+    const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerPartWidth)
+    const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
 
     // 绘制水平滚动条滑块
     scrollbarVars.horizontalScrollbarThumb = createUnifiedCellRect({

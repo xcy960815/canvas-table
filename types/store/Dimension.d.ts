@@ -19,6 +19,8 @@ declare namespace DimensionStore {
      * 无效信息
      */
     __invalidMessage?: string
+    
+    index?:number
     /**
      * 固定列
      */
@@ -47,27 +49,6 @@ declare namespace DimensionStore {
      * 是否支持排序
      */
     sortable?: boolean
-    /**
-     * 操作列按钮配置（当用于操作列时生效）
-     */
-    actions?: Array<{
-      /**
-       * 唯一动作键
-       */
-      key: string
-      /**
-       * 按钮文案
-       */
-      label: string
-      /**
-       * 按钮类型，影响配色
-       */
-      type?: 'primary' | 'success' | 'warning' | 'danger' | 'default'
-      /**
-       * 是否禁用；也可传函数 (row, rowIndex) => boolean
-       */
-      disabled?: boolean | ((row: ChartDataVo.ChartData, rowIndex: number) => boolean)
-    }>
     /**
      * 是否可编辑
      */

@@ -5,7 +5,7 @@
 import { tableProps, staticParams } from './parameter';
 import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { stageVars, initStage, destroyStage, initStageListeners, cleanupStageListeners } from './stage-handler';
-import { sortColumns, handleTableColumns, handleTableData } from './header-handler';
+import { sortColumns, handleTableData } from './header-handler';
 import { initWheelListener,cleanupWheelListener } from './scrollbar-handler';
 import { refreshTable } from './stage-handler';
 
@@ -24,11 +24,9 @@ const tableContainerStyle = computed(() => {
   }
 })
 
-
-
-
-
-
+/**
+ * 监听所有的props
+ */
 watch(props, () => {
   // 使用类型安全的属性赋值
   if (props.title !== undefined) staticParams.title = props.title
@@ -69,7 +67,6 @@ watch(props, () => {
   immediate: true
 })
 
-
 /**
  * 监听 props 变化
  * @returns {void}
@@ -78,7 +75,6 @@ watch(
   () => [props.xAxisFields, props.yAxisFields, props.data],
   () => {
     if (!stageVars.stage) return
-    handleTableColumns()
     handleTableData()
     refreshTable(true)
   },
@@ -217,20 +213,15 @@ watch(
 
 onMounted(() => {
   initStage()
-  handleTableColumns()
   handleTableData()
   refreshTable(true)
   initWheelListener()
   initStageListeners()
-  // initSummaryDropdownListeners()
-  // initCellEditorListeners()
 })
 
 onUnmounted(() => {
+  destroyStage()
   cleanupWheelListener()
   cleanupStageListeners()
-  // cleanupSummaryDropdownListeners()
-  // cleanupCellEditorListeners()
-  destroyStage()
 })
 </script>

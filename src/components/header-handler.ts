@@ -1,7 +1,6 @@
 import { reactive, ref } from 'vue'
 import Konva from 'konva'
 import { stageVars, clearGroups } from './stage-handler'
-import { tableColumns } from './parameter'
 export type Prettify<T> = {
     [K in keyof T]: T[K]
 } & {}
@@ -159,27 +158,6 @@ export const handleTableData = () => {
 }
 
 /**
- * 处理表格列
- * @returns {void}
- */
-export const handleTableColumns = () => {
-    const xAxisFields = staticParams.xAxisFields
-    const yAxisFields = staticParams.yAxisFields
-    const leftColsx = xAxisFields.filter((c) => c.fixed === 'left')
-    const rightColsx = xAxisFields.filter((c) => c.fixed === 'right')
-    const centerColsx = xAxisFields.filter((c) => !c.fixed)
-    const leftColsy = yAxisFields.filter((c) => c.fixed === 'left')
-    const rightColsy = yAxisFields.filter((c) => c.fixed === 'right')
-    const centerColsy = yAxisFields.filter((c) => !c.fixed)
-    tableColumns.value = leftColsx
-        .concat(centerColsx)
-        .concat(rightColsx)
-        .concat(leftColsy)
-        .concat(centerColsy)
-        .concat(rightColsy)
-}
-
-/**
  * 获取列的排序状态
  * @param {string} columnName - 列名
  * @returns {'asc' | 'desc' | null} 排序状态
@@ -205,9 +183,7 @@ const createFilterIcon = (
     headerGroup: Konva.Group
 ) => {
     // 检查列是否可过滤
-    if (!col.filterable) {
-        return
-    }
+    if (!col.filterable) return
 
     const hasFilter = !!(filterState[col.columnName] && filterState[col.columnName].size > 0)
     const filterColor = hasFilter ? staticParams.sortActiveColor : COLORS.INACTIVE
