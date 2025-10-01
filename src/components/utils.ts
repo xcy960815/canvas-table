@@ -1,12 +1,17 @@
 import Konva from 'konva'
 /**
- * 获取容器元素
- * @returns {HTMLDivElement | null} 容器元素
+ * 对象池 属性
  */
-export const getTableContainer = (): HTMLDivElement | null => {
-    return document.getElementById('table-container') as HTMLDivElement | null
+export interface KonvaNodePools {
+    /**
+     * 单元格矩形
+     */
+    cellRects: Konva.Rect[]
+    /**
+     * 单元格文本
+     */
+    cellTexts: Konva.Text[]
 }
-
 
 /**
  * 清理对象池
@@ -23,9 +28,6 @@ export const clearPool = (pool: Konva.Node[]) => {
  * @param {T[]} pools 对象池
  * @param {() => T} createPoolHandler 创建函数
  * @returns {T}
- * @param pool 对象池
- * @param createFn 创建函数
- * @returns {T}
  */
 export const getFromPool = <T extends Konva.Node>(pools: T[], createPoolHandler: () => T): T => {
     let pooledNode = pools.pop()
@@ -33,6 +35,58 @@ export const getFromPool = <T extends Konva.Node>(pools: T[], createPoolHandler:
         pooledNode = createPoolHandler()
     }
     return pooledNode
+}
+
+/**
+ * 回收 Konva 节点
+ * @param pool 对象池
+ * @param node 对象
+ * @returns {void}
+ */
+export const returnToPool = <T extends Konva.Node>(pool: T[], node: T) => {
+    node.remove()
+    pool.push(node)
+}
+
+/**
+ * 优化的节点回收 - 批量处理减少遍历次数
+ * @param {Konva.Group} bodyGroup - 分组
+ * @param {KonvaNodePools} pools - 对象池
+ * @returns {void}
+ */
+export const recoverKonvaNode = (bodyGroup: Konva.Group, pools: KonvaNodePools) => {
+    // 清空当前组，将对象返回池中
+    const children = bodyGroup.children.slice()
+    const textsToRecover: Konva.Text[] = []
+    const rectsToRecover: Konva.Rect[] = []
+
+    // 分类收集需要回收的节点
+    children.forEach((child: Konva.Node) => {
+        if (child instanceof Konva.Text) {
+            const name = child.name()
+            // 处理合并单元格和普通单元格文本节点回收
+            if (name === 'merged-cell-text' || name === 'cell-text') {
+                textsToRecover.push(child)
+            }
+        } else if (child instanceof Konva.Rect) {
+            const name = child.name()
+            // 处理合并单元格和普通单元格矩形节点回收
+            if (name === 'merged-cell-rect' || name === 'cell-rect') {
+                rectsToRecover.push(child)
+            }
+        }
+    })
+
+    // 批量回收
+    textsToRecover.forEach((text) => returnToPool(pools.cellTexts, text))
+    rectsToRecover.forEach((rect) => returnToPool(pools.cellRects, rect))
+}
+/**
+ * 获取容器元素
+ * @returns {HTMLDivElement | null} 容器元素
+ */
+export const getTableContainer = (): HTMLDivElement | null => {
+    return document.getElementById('table-container') as HTMLDivElement | null
 }
 
 /**
@@ -58,16 +112,7 @@ export const constrainToRange = (n: number, min: number, max: number) => {
 }
 
 
-/**
- * 回收 Konva 节点
- * @param pool 对象池
- * @param node 对象
- * @returns {void}
- */
-export const returnToPool = <T extends Konva.Node>(pool: T[], node: T) => {
-    node.remove()
-    pool.push(node)
-}
+// 对象回收逻辑迁移至 pool-handler.ts
 
 
 /**
@@ -116,19 +161,7 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
     return result || '...'
 }
 
-/**
- * 对象池 属性
- */
-export interface KonvaNodePools {
-    /**
-     * 单元格矩形
-     */
-    cellRects: Konva.Rect[]
-    /**
-     * 单元格文本
-     */
-    cellTexts: Konva.Text[]
-}
+// KonvaNodePools 类型迁移至 pool-handler.ts
 
 /**
  * 绘制文本配置接口
@@ -145,7 +178,6 @@ export interface DrawTextConfig {
     align?: 'left' | 'center' | 'right'
     verticalAlign?: 'top' | 'middle' | 'bottom'
     cellHeight?: number
-    useGetTextX?: boolean
     opacity?: number
     offsetX?: number
     offsetY?: number
@@ -186,7 +218,6 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         align = 'left',
         verticalAlign = 'middle',
         cellHeight,
-        useGetTextX = false,
         opacity = 1,
         offsetX = 0,
         offsetY = 0
@@ -198,13 +229,9 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
     textNode.setAttr('row-index', null)
     textNode.setAttr('col-index', null)
 
-    if (useGetTextX) {
-        textNode.x(getTextX(x))
-        textNode.y(cellHeight ? y + cellHeight / 2 : y)
-    } else {
-        textNode.x(x)
-        textNode.y(y)
-    }
+    // 始终应用左侧 8px 内边距；若给定 cellHeight 则做垂直居中基准定位
+    textNode.x(getTextX(x))
+    textNode.y(cellHeight ? y + cellHeight / 2 : y)
 
     textNode.text(text)
     textNode.fontSize(fontSize)
@@ -218,7 +245,7 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         const w = textNode.width()
         const h = textNode.height()
         textNode.offset({ x: w / 2, y: h / 2 })
-    } else if (useGetTextX && verticalAlign === 'middle') {
+    } else if (verticalAlign === 'middle') {
         textNode.offsetY(textNode.height() / 2)
     }
 
@@ -389,45 +416,7 @@ export const getCellDisplayValue = (
     return String(rawValue ?? '')
 }
 
-// ============================================================================
-// 节点管理相关工具函数 (Node Management Utilities)
-// ============================================================================
-
-/**
- * 优化的节点回收 - 批量处理减少遍历次数
- * @param {Konva.Group} bodyGroup - 分组
- * @param {KonvaNodePools} pools - 对象池
- * @returns {void}
- */
-export const recoverKonvaNode = (bodyGroup: Konva.Group, pools: KonvaNodePools) => {
-    // 清空当前组，将对象返回池中
-    const children = bodyGroup.children.slice()
-    const textsToRecover: Konva.Text[] = []
-    const rectsToRecover: Konva.Rect[] = []
-
-    // 分类收集需要回收的节点
-    children.forEach((child: Konva.Node) => {
-        if (child instanceof Konva.Text) {
-            const name = child.name()
-            // 处理合并单元格和普通单元格文本节点回收
-            if (name === 'merged-cell-text' || name === 'cell-text') {
-                textsToRecover.push(child)
-            }
-        } else if (child instanceof Konva.Rect) {
-            const name = child.name()
-            // 处理合并单元格和普通单元格矩形节点回收
-            if (name === 'merged-cell-rect' || name === 'cell-rect') {
-                rectsToRecover.push(child)
-            }
-        }
-    })
-
-    // 批量回收
-    textsToRecover.forEach((text) => returnToPool(pools.cellTexts, text))
-    rectsToRecover.forEach((rect) => returnToPool(pools.cellRects, rect))
-}
-
-
+// 节点回收逻辑迁移至 pool-handler.ts
 
 /**
  * 设置指针样式的辅助函数

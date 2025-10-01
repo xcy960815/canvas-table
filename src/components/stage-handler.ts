@@ -1,6 +1,7 @@
 import Konva from 'konva'
 import { staticParams, tableData } from "./parameter"
-import { clearPool, constrainToRange, getTableContainer, setPointerStyle, createGroup } from './utils'
+import { constrainToRange, getTableContainer, setPointerStyle, createGroup } from './utils'
+import { clearPool } from './pool-handler'
 import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup, createHeaderClipGroup, drawHeaderPart, headerVars } from './header-handler'
 
 import { bodyVars, calculateVisibleRows, getColumnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart, getSummaryRowHeight } from './body-handler'

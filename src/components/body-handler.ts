@@ -1,14 +1,7 @@
 import Konva from "konva";
-import {
-    type KonvaNodePools,
-    createGroup,
-    recoverKonvaNode,
-    drawUnifiedRect,
-    drawUnifiedText,
-    getCellDisplayValue,
-    truncateText,
-} from "./utils";
-import { stageVars, getStageAttr } from "./stage-handler";
+import { createGroup, drawUnifiedRect, drawUnifiedText, getCellDisplayValue, truncateText } from "./utils";
+import { type KonvaNodePools, recoverKonvaNode } from './utils'
+import { stageVars, getStageSize } from "./stage-handler";
 import { scrollbarVars } from "./scrollbar-handler";
 import { staticParams, tableData } from "./parameter";
 
@@ -104,7 +97,7 @@ export const calculateVisibleRows = () => {
 
     if (!stageVars.stage) return
 
-    const { height: stageHeight } = getStageAttr()
+    const { height: stageHeight } = getStageSize()
 
     const bodyHeight = stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - staticParams.scrollbarSize
 
@@ -141,7 +134,7 @@ export const getColumnsInfo = () => {
     const tableColumns = xAxisFields.concat(yAxisFields).map((columnOption, index) => ({ ...columnOption, colIndex: index }))
 
     // 计算滚动条预留宽度 高度
-    // const { width: stageWidthRaw, height: stageHeightRaw } = getStageAttr()
+    // const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
     // 计算内容高度
     // const contentHeight = tableData.value.length * staticParams.bodyRowHeight
     // 计算垂直滚动条预留空间
@@ -229,8 +222,7 @@ const drawMergedCell = (
         fill: staticParams.bodyTextColor,
         align: columnOption.align || 'left',
         verticalAlign: 'middle',
-        cellHeight,
-        useGetTextX: true
+        cellHeight
     })
     bodyGroup.add(mergedCellText)
 }
@@ -294,8 +286,7 @@ const drawNormalCell = (
         fill: staticParams.bodyTextColor,
         align: columnOption.align || 'left',
         verticalAlign: 'middle',
-        cellHeight,
-        useGetTextX: true
+        cellHeight
     })
     bodyGroup.add(cellText)
 }
