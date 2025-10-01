@@ -423,7 +423,6 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         // 检查是否需要重新渲染虚拟滚动内容
         const oldVisibleStart = bodyVars.visibleRowStart
         const oldVisibleEnd = bodyVars.visibleRowEnd
-        calculateVisibleRows()
 
         const needsRerender =
             bodyVars.visibleRowStart !== oldVisibleStart ||

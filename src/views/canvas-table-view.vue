@@ -440,7 +440,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
 /**
  * 数据
  */
-const data: Array<ChartDataVo.ChartData> = Array.from({ length: 100 }, (_, i) => {
+const data: Array<ChartDataVo.ChartData> = Array.from({ length: 10000 }, (_, i) => {
   const birthYear = 1970 + (i % 40)
   const birthMonth = (i % 12) + 1
   const birthDay = (i % 28) + 1

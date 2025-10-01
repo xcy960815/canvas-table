@@ -221,7 +221,7 @@ const drawMergedCell = (
         fontSize: bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
-        align: columnOption.align || 'left',
+        align: columnOption.columnName === '__index__' ? 'left' : (columnOption.align || 'left'),
         verticalAlign: 'middle',
         cellHeight
     })
@@ -285,7 +285,7 @@ const drawNormalCell = (
         fontSize: bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
-        align: columnOption.align || 'left',
+        align: columnOption.columnName === '__index__' ? 'left' : (columnOption.align || 'left'),
         verticalAlign: 'middle',
         cellHeight
     })
