@@ -138,7 +138,7 @@ const sumWidth = (columns: Array<GroupStore.GroupOption | DimensionStore.Dimensi
 export const getColumnsInfo = () => {
     const xAxisFields = staticParams.xAxisFields
     const yAxisFields = staticParams.yAxisFields
-    const tableColumns = xAxisFields.concat(yAxisFields)
+    const tableColumns = xAxisFields.concat(yAxisFields).map((columnOption, index) => ({ ...columnOption, colIndex: index }))
 
     // 计算滚动条预留宽度 高度
     // const { width: stageWidthRaw, height: stageHeightRaw } = getStageAttr()
@@ -159,9 +159,9 @@ export const getColumnsInfo = () => {
     // const remainingWidth = Math.max(0, stageWidth - fixedTotalWidth)
     // const rawAutoWidth = autoWidthColumns.length > 0 ? remainingWidth / autoWidthColumns.length : 0
     // const autoColumnWidth = Math.max(staticParams.minAutoColWidth, rawAutoWidth)
-    const leftColumns = tableColumns.map((columnOption, index) => ({ ...columnOption, index })).filter((c) => c.fixed === 'left')
-    const centerColumns = tableColumns.map((columnOption, index) => ({ ...columnOption, index })).filter((c) => !c.fixed)
-    const rightColumns = tableColumns.map((columnOption, index) => ({ ...columnOption, index })).filter((c) => c.fixed === 'right')
+    const leftColumns = tableColumns.filter((c) => c.fixed === 'left')
+    const centerColumns = tableColumns.filter((c) => !c.fixed)
+    const rightColumns = tableColumns.filter((c) => c.fixed === 'right')
 
     return {
         leftColumns,
@@ -316,7 +316,7 @@ export const calculateCellSpan = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     rowIndex: number,
 ) => {
-    const res = spanMethod({ row, column: columnOption, rowIndex, colIndex: columnOption.index })
+    const res = spanMethod({ row, column: columnOption, rowIndex, colIndex: columnOption.colIndex || 0 })
     let spanRow = 1
     let spanCol = 1
 
@@ -377,7 +377,7 @@ export const drawBodyPart = (
     const bodyFontSize = staticParams.bodyFontSize
     const spanMethod = typeof staticParams.spanMethod === 'function' ? staticParams.spanMethod : null
     const hasSpanMethod = !!spanMethod
-    
+
     // 清理旧节点
     recoverKonvaNode(bodyGroup, pools)
 
@@ -391,7 +391,7 @@ export const drawBodyPart = (
         for (let colIndex = 0; colIndex < bodyCols.length; colIndex++) {
             const columnOption = bodyCols[colIndex]
             const columnWidth = columnOption.width || 0
-            
+
             if (columnWidth <= 0) {
                 x += columnWidth
                 continue
@@ -418,7 +418,7 @@ export const drawBodyPart = (
             const computedRowSpan = hasSpanMethod ? spanRow : 1
             const cellHeight = computedRowSpan * staticParams.bodyRowHeight
             const cellWidth = calculateMergedCellWidth(spanCol, colIndex, bodyCols, columnWidth)
-            
+
             // 绘制单元格
             if (hasSpanMethod && (computedRowSpan > 1 || spanCol > 1)) {
                 drawMergedCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)

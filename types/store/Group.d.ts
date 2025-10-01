@@ -25,7 +25,10 @@ declare namespace GroupStore {
      */
     __invalidMessage?: string
 
-    index?: number
+    /**
+     * 列索引
+     */
+    colIndex?: number
     /**
      * 固定列
      */

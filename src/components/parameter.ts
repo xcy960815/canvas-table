@@ -56,7 +56,7 @@ export const tableProps = {
    */
   spanMethod: {
     type: Function as PropType<
-      (args: {
+      (config: {
         row: ChartDataVo.ChartData
         column: GroupStore.GroupOption | DimensionStore.DimensionOption
         rowIndex: number
@@ -218,7 +218,7 @@ interface StaticParams {
   scrollbarThumbBackground: string
   scrollbarThumbHoverBackground: string
   sortActiveColor: string
-  spanMethod?: (args: {
+  spanMethod?: (config: {
     row: ChartDataVo.ChartData
     column: GroupStore.GroupOption | DimensionStore.DimensionOption
     rowIndex: number

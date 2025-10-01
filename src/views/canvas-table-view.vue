@@ -388,21 +388,6 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     editType: 'input'
     // fixed: 'right' as const
   },
-  // 注释掉action列以提升性能
-  // {
-  //   columnName: 'action',
-  //   columnType: 'string',
-  //   columnComment: '操作',
-  //   displayName: '操作',
-  //   width: 220,
-  //   fixed: 'right' as const,
-  //   align: 'center' as const,
-  //   actions: [
-  //     { key: 'view', label: '查看', type: 'primary' },
-  //     { key: 'edit', label: '编辑', type: 'success' },
-  //     { key: 'delete', label: '删除', type: 'danger' }
-  //   ]
-  // },
   {
     columnName: 'address',
     columnType: 'string',
