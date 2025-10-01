@@ -269,11 +269,11 @@ const createColumnResizer = (
     headerGroup: Konva.Group
 ) => {
     const resizer = new Konva.Rect({
-        x: x + (columnOption.width || 0) + LAYOUT_CONSTANTS.RESIZER_WIDTH / 2,
+        x: x + (columnOption.width || 0) - LAYOUT_CONSTANTS.RESIZER_WIDTH / 2,
         y: 0,
         width: LAYOUT_CONSTANTS.RESIZER_WIDTH,
         height: staticParams.headerRowHeight,
-        fill: 'red',
+        fill: staticParams.borderColor,
         listening: true,
         draggable: false,
         name: `col-resizer-${columnOption.columnName}`

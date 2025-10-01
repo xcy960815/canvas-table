@@ -85,9 +85,16 @@ export const bodyVars: BodyVars = {
 export const createBodyLeftGroup = (x: number, y: number) => createGroup('body', 'left', x, y)
 export const createBodyCenterGroup = (x: number, y: number) => createGroup('body', 'center', x, y)
 export const createBodyRightGroup = (x: number, y: number) => createGroup('body', 'right', x, y)
-export const createLeftBodyClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('body', 'left', x, y, { x, y, width, height })
-export const createCenterBodyClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('body', 'center', x, y, { x, y, width, height })
-export const createRightBodyClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('body', 'right', x, y, { x, y, width, height })
+interface ClipOptions {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+export const createLeftBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'left', x, y, clipOptions)
+export const createCenterBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'center', x, y, clipOptions)
+export const createRightBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'right', x, y, clipOptions)
+
 export const getSummaryRowHeight = () => (staticParams.enableSummary ? staticParams.summaryRowHeight : 0)
 
 /**
@@ -120,11 +127,15 @@ export const calculateVisibleRows = () => {
  * 计算左右固定列与中间列的分组与宽度汇总
  * @returns {Object} 分组与宽度汇总
  */
-export const getSplitColumns = () => {
+export const getColumnsInfo = () => {
+    const xAxisFields = staticParams.xAxisFields
+    const yAxisFields = staticParams.yAxisFields
+    const tableColumns = xAxisFields.concat(yAxisFields)
     if (!stageVars.stage) {
-        const leftCols = tableColumns.value.filter((c) => c.fixed === 'left')
-        const rightCols = tableColumns.value.filter((c) => c.fixed === 'right')
-        const centerCols = tableColumns.value.filter((c) => !c.fixed)
+
+        const leftCols = tableColumns.filter((c) => c.fixed === 'left')
+        const rightCols = tableColumns.filter((c) => c.fixed === 'right')
+        const centerCols = tableColumns.filter((c) => !c.fixed)
         return {
             leftCols,
             centerCols,
@@ -146,8 +157,8 @@ export const getSplitColumns = () => {
     const stageWidth = stageWidthRaw - verticalScrollbarSpace
 
     // 计算已设置宽度的列的总宽度
-    const fixedWidthColumns = tableColumns.value.filter((c) => c.width !== undefined)
-    const autoWidthColumns = tableColumns.value.filter((c) => c.width === undefined)
+    const fixedWidthColumns = tableColumns.filter((c) => c.width !== undefined)
+    const autoWidthColumns = tableColumns.filter((c) => c.width === undefined)
     const fixedTotalWidth = fixedWidthColumns.reduce((acc, c) => acc + (c.width || 0), 0)
 
     // 计算自动宽度列应该分配的宽度
@@ -156,7 +167,7 @@ export const getSplitColumns = () => {
     const autoColumnWidth = Math.max(staticParams.minAutoColWidth, rawAutoWidth)
 
     // 为每个列计算最终宽度（支持用户拖拽覆盖）
-    const columnsWithWidth = tableColumns.value.map((columnOption) => {
+    const columnsWithWidth = tableColumns.map((columnOption) => {
         const overrideWidth = undefined
         const width =
             overrideWidth !== undefined
@@ -195,7 +206,7 @@ export const getSplitColumns = () => {
  */
 export const getScrollLimits = () => {
     if (!stageVars.stage) return { maxScrollX: 0, maxScrollY: 0 }
-    const { totalWidth, leftWidth, rightWidth } = getSplitColumns()
+    const { totalWidth, leftWidth, rightWidth } = getColumnsInfo()
 
     const { width: stageWidth, height: stageHeight } = getStageAttr()
 
@@ -507,7 +518,7 @@ export const drawBodyPart = (
     pools: KonvaNodePools
 ) => {
     if (!stageVars.stage || !bodyGroup) return
-    
+
     calculateVisibleRows()
 
     const bodyFontSize = staticParams.bodyFontSize

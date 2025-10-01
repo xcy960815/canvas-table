@@ -2,7 +2,7 @@ import Konva from "konva";
 import { stageVars, getStageAttr } from "./stage-handler";
 import { staticParams, tableData } from "./parameter";
 import { headerVars } from "./header-handler";
-import { bodyVars, getSummaryRowHeight, calculateVisibleRows, getScrollLimits, getSplitColumns, drawBodyPart } from "./body-handler";
+import { bodyVars, getSummaryRowHeight, calculateVisibleRows, getScrollLimits, getColumnsInfo, drawBodyPart } from "./body-handler";
 import { summaryVars } from "./summary-handler";
 import {
     getTableContainer,
@@ -201,7 +201,7 @@ export const updateScrollPositions = () => {
 export const updateHorizontalScroll = (offsetX: number) => {
     if (!stageVars.stage || !headerVars.centerHeaderGroup || !bodyVars.centerBodyGroup) return
     const { maxScrollX } = getScrollLimits()
-    const { leftWidth } = getSplitColumns()
+    const { leftWidth } = getColumnsInfo()
     scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX + offsetX, 0, maxScrollX)
     const headerX = leftWidth - scrollbarVars.stageScrollX
     const centerX = -scrollbarVars.stageScrollX
@@ -245,7 +245,7 @@ export const updateVerticalScroll = (offsetY: number) => {
 
     if (visibleRangeChanged) {
         // 重新渲染可视区域
-        const { leftCols, centerCols, rightCols } = getSplitColumns()
+        const { leftCols, centerCols, rightCols } = getColumnsInfo()
 
         // 主体相关 - 批量执行重绘操作，减少单独的绘制调用
         const renderOperations = [
@@ -333,7 +333,7 @@ export const updateScrollbarPosition = () => {
 
     // 更新水平滚动条位置
     if (scrollbarVars.horizontalScrollbarThumb && maxScrollX > 0) {
-        const { leftWidth, rightWidth, centerWidth } = getSplitColumns()
+        const { leftWidth, rightWidth, centerWidth } = getColumnsInfo()
         const visibleWidth = stageWidth - leftWidth - rightWidth - (maxScrollY > 0 ? staticParams.scrollbarSize : 0)
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / centerWidth)
         const thumbX = leftWidth + (scrollbarVars.stageScrollX / maxScrollX) * (visibleWidth - thumbWidth)
@@ -484,7 +484,7 @@ export const drawHorizontalScrollbarPart = () => {
     })
 
     // 计算水平滚动条宽度
-    const { leftWidth, rightWidth, centerWidth } = getSplitColumns()
+    const { leftWidth, rightWidth, centerWidth } = getColumnsInfo()
     const verticalScrollbarSpaceForThumb = maxScrollY > 0 ? staticParams.scrollbarSize : 0
     // 计算水平滚动条宽度
     const visibleWidth = stageWidth - leftWidth - rightWidth - verticalScrollbarSpaceForThumb

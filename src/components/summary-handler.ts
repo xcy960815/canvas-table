@@ -57,10 +57,17 @@ const textOptions = [
 
 
 // 快捷方法 - 汇总分组
+interface ClipOptions {
+    width: number
+    height: number
+    x: number
+    y: number
+}
 export const createSummaryLeftGroup = (x: number, y: number) => createGroup('summary', 'left', x, y)
 export const createSummaryCenterGroup = (x: number, y: number) => createGroup('summary', 'center', x, y)
 export const createSummaryRightGroup = (x: number, y: number) => createGroup('summary', 'right', x, y)
-export const createSummaryClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('summary', 'center', x, y, { x, y, width, height })
+export const createSummaryClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('summary', 'center', x, y, clipOptions)
+
 /**
  * 汇总行选择状态：列名 -> 选中的规则 - 单独的响应式变量
  */

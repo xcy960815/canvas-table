@@ -116,10 +116,6 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
     return result || '...'
 }
 
-// ============================================================================
-// 绘制相关工具函数 (Drawing Utilities)
-// ============================================================================
-
 /**
  * 对象池 属性
  */
@@ -386,8 +382,8 @@ export const createUnifiedCellText = (config: {
  */
 export const calculateCellSpan = (
     spanMethod: Function,
-    row: any,
-    columnOption: any,
+    row: ChartDataVo.ChartData,
+    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     rowIndex: number,
     globalColIndex: number
 ) => {
@@ -420,7 +416,7 @@ export const calculateCellSpan = (
 export const calculateMergedCellWidth = (
     spanCol: number,
     colIndex: number,
-    bodyCols: Array<any>,
+    bodyCols: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>,
     columnWidth: number
 ) => {
     if (spanCol <= 1) return columnWidth
@@ -435,14 +431,14 @@ export const calculateMergedCellWidth = (
 
 /**
  * 获取单元格显示值
- * @param {any} columnOption - 列配置
- * @param {any} row - 行数据
+ * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
+ * @param {ChartDataVo.ChartData} row - 行数据
  * @param {number} rowIndex - 行索引
  * @returns {string} 显示值
  */
 export const getCellDisplayValue = (
-    columnOption: any,
-    row: any,
+    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
+    row: ChartDataVo.ChartData,
     rowIndex: number
 ) => {
     const rawValue =
@@ -530,6 +526,12 @@ export const setPointerStyle = (stage: Konva.Stage | null, on: boolean, cursor: 
     if (stage) stage.container().style.cursor = on ? cursor : 'default'
 }
 
+interface ClipOptions {
+    x: number
+    y: number
+    width: number
+    height: number
+}
 
 /**
  * 统一的分组创建工厂方法
@@ -549,13 +551,9 @@ export const createGroup = (
     position: 'left' | 'center' | 'right',
     x: number,
     y: number,
-    clip?: {
-        x: number
-        y: number
-        width: number
-        height: number
-    }
+    clip?: ClipOptions
 ): Konva.Group => {
+
     const groupName = `${position}-${groupType}${clip ? '-clip' : ''}-group`
 
     const groupConfig: Konva.GroupConfig = {
