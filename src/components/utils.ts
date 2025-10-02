@@ -205,34 +205,35 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         group
     } = config
 
-    let textNode = null
+    // 创建或复用文本节点
+    const textNode = pools
+        ? getFromPool(pools.cellTexts, () => new Konva.Text({ listening: false, name }))
+        : new Konva.Text({
+            name,
+            text,
+            x,
+            y,
+            fontSize,
+            fontFamily,
+            fill,
+            align,
+            verticalAlign,
+            width,
+            height,
+            listening: false
+        })
+
+    // 统一设置属性（仅在使用对象池时需要更新所有属性）
     if (pools) {
-        textNode = getFromPool(pools.cellTexts, () => new Konva.Text({ listening: false, name }))
-        textNode.name(name)
-        // 始终应用左侧 8px 内边距；若给定 cellHeight 则做垂直居中基准定位
-        textNode.x(x)
-        textNode.y(height ? y + height / 2 : y)
         textNode.text(text)
         textNode.fontSize(fontSize)
         textNode.fontFamily(fontFamily)
         textNode.fill(fill)
         textNode.align(align)
         textNode.verticalAlign(verticalAlign)
-    } else {
-        textNode = new Konva.Text({
-            name: name,
-            text: text,
-            x: x,
-            y: y,
-            fontSize: fontSize,
-            fontFamily: fontFamily,
-            fill: fill,
-            align: align,
-            verticalAlign: verticalAlign,
-            width: width,
-            height: height,
-        })
     }
+
+    // 处理水平对齐
     if (align === 'center') {
         textNode.x(x + width / 2)
         textNode.offsetX(textNode.width() / 2)
@@ -242,11 +243,14 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         textNode.x(x + 8)
     }
 
-    // 垂直居中
+    // 处理垂直对齐
     if (verticalAlign === 'middle') {
         textNode.y(y + height / 2)
         textNode.offsetY(textNode.height() / 2)
+    } else {
+        textNode.y(y)
     }
+
     group.add(textNode)
     return textNode
 }
@@ -257,41 +261,33 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
  * @returns {Konva.Rect} 矩形节点
  */
 export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
-    const { pools, name, x, y, width, height, fill, stroke, strokeWidth , cornerRadius, listening, group } = config
-    let rectNode = null
-    if (pools) {
-        rectNode = getFromPool(pools.cellRects, () => new Konva.Rect({ listening, name }))
-        rectNode.name(name)
-        rectNode.off('click')
-        rectNode.off('mouseenter')
-        rectNode.off('mouseleave')
-        rectNode.x(x)
-        rectNode.y(y)
-        rectNode.width(width)
-        rectNode.height(height)
-        rectNode.fill(fill)
-        rectNode.stroke(stroke)
-        rectNode.strokeWidth(strokeWidth)
-        rectNode.cornerRadius(cornerRadius)
-    } else {
-        rectNode = new Konva.Rect({ listening, name })
-        rectNode.name(name)
-        rectNode.off('click')
-        rectNode.off('mouseenter')
-        rectNode.off('mouseleave')
-        rectNode.x(x)
-        rectNode.y(y)
-        rectNode.width(width)
-        rectNode.height(height)
-        rectNode.fill(fill)
-        rectNode.stroke(stroke)
-        rectNode.strokeWidth(strokeWidth)
-        rectNode.cornerRadius(cornerRadius)
-    }
+    const { pools, name, x, y, width, height, fill, stroke, strokeWidth, cornerRadius, listening, group } = config
+
+    // 创建或复用矩形节点
+    const rectNode = pools
+        ? getFromPool(pools.cellRects, () => new Konva.Rect({ listening, name }))
+        : new Konva.Rect({ listening, name })
+
+    // 移除旧的事件监听器（避免对象池复用时累积事件）
+    rectNode.off('click')
+    rectNode.off('mouseenter')
+    rectNode.off('mouseleave')
+
+    // 统一设置属性
+    rectNode.setAttrs({
+        x,
+        y,
+        width,
+        height,
+        fill,
+        stroke,
+        strokeWidth,
+        cornerRadius
+    })
+
     group.add(rectNode)
     return rectNode
 }
-
 
 /**
  * 获取单元格显示值
