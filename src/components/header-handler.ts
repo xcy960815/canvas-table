@@ -12,7 +12,7 @@ import {
     setPointerStyle,
     createGroup,
     createUnifiedCellRect,
-    createUnifiedCellText,
+    drawUnifiedText,
 } from './utils'
 
 interface HeaderVars {
@@ -388,19 +388,18 @@ const createHeaderCellText = (
         staticParams.headerFontFamily
     )
 
-    return createUnifiedCellText({
+    drawUnifiedText({
         name: 'header-cell-text',
         text,
         x,
         y: 0,
-        width: columnOption.width || 0,
-        height: staticParams.headerRowHeight,
+        cellWidth: columnOption.width || 0,
+        cellHeight: staticParams.headerRowHeight,
         fontSize: staticParams.headerFontSize,
         fontFamily: staticParams.headerFontFamily,
         fill: staticParams.headerTextColor,
-        align: columnOption.align || 'left',
-        verticalAlign: columnOption.verticalAlign || 'middle',
-        listening: false,
+        align: columnOption.align ?? 'left',
+        verticalAlign: columnOption.verticalAlign ?? 'middle',
         group: headerGroup
     })
 }

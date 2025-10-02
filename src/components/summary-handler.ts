@@ -1,7 +1,7 @@
 import Konva from 'konva'
 import { reactive } from 'vue'
 import { webworker } from '@/composables/useWebworker';
-import { createUnifiedCellRect, createUnifiedCellText, createGroup, truncateText } from "./utils"
+import { createUnifiedCellRect, createGroup, truncateText,drawUnifiedText } from "./utils"
 import { stageVars } from './stage-handler'
 import { setPointerStyle } from "./utils"
 import { staticParams, tableData } from './parameter'
@@ -217,19 +217,18 @@ export const drawSummaryPart = (
         const truncatedTitle = truncateText(placeholderText, textMaxWidth, staticParams.summaryFontSize, summaryFontFamily)
 
         // 使用统一函数创建汇总行文本
-        const summaryCellText = createUnifiedCellText({
+        const summaryCellText = drawUnifiedText({
             name: 'summary-cell-text',
             text: truncatedTitle,
             x,
             y: 0,
-            width: colWidth,
-            height: summaryRowHeight,
+            cellWidth: colWidth,
+            cellHeight: summaryRowHeight,
             fontSize,
             fontFamily: summaryFontFamily,
             fill: summaryTextColor,
-            align: col.align || 'left',
-            verticalAlign: 'middle',
-            listening: false,
+            align: col.align ?? 'left',
+            verticalAlign: col.verticalAlign ?? 'middle',
             group: summaryGroup
         })
 

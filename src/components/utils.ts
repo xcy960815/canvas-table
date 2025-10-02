@@ -167,7 +167,7 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
  * 绘制文本配置接口
  */
 export interface DrawTextConfig {
-    pools: KonvaNodePools
+    pools?: KonvaNodePools
     name: string
     text: string
     x: number
@@ -175,12 +175,11 @@ export interface DrawTextConfig {
     fontSize: number
     fontFamily: string
     fill: string
-    align?: 'left' | 'center' | 'right'
-    verticalAlign?: 'top' | 'middle' | 'bottom'
-    cellHeight?: number
-    opacity?: number
-    offsetX?: number
-    offsetY?: number
+    align: 'left' | 'center' | 'right'
+    verticalAlign: 'top' | 'middle' | 'bottom'
+    cellHeight: number
+    cellWidth: number
+    group: Konva.Group
 }
 
 /**
@@ -215,45 +214,56 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         fontSize,
         fontFamily,
         fill,
-        align = 'left',
-        verticalAlign = 'middle',
+        align,
+        verticalAlign,
         cellHeight,
-        opacity = 1,
-        offsetX = 0,
-        offsetY = 0
+        cellWidth,
+        group
     } = config
 
-    const textNode = getFromPool(pools.cellTexts, () => new Konva.Text({ listening: false, name }))
+    let textNode = null
+    if (pools) {
+        textNode = getFromPool(pools.cellTexts, () => new Konva.Text({ listening: false, name }))
+        textNode.name(name)
+        // 始终应用左侧 8px 内边距；若给定 cellHeight 则做垂直居中基准定位
+        textNode.x(x)
+        textNode.y(cellHeight ? y + cellHeight / 2 : y)
+        textNode.text(text)
+        textNode.fontSize(fontSize)
+        textNode.fontFamily(fontFamily)
+        textNode.fill(fill)
+        textNode.align(align)
+        textNode.verticalAlign(verticalAlign)
+    } else {
+        textNode = new Konva.Text({
+            name: name,
+            text: text,
+            x: x,
+            y: y,
+            fontSize: fontSize,
+            fontFamily: fontFamily,
+            fill: fill,
+            align: align,
+            verticalAlign: verticalAlign,
+            width: cellWidth,
+            height: cellHeight,
+        })
+    }
+    if (align === 'center') {
+        textNode.x(x + cellWidth / 2)
+        textNode.offsetX(textNode.width() / 2)
+    } else if (align === 'right') {
+        textNode.x(x + cellWidth - 8)
+    } else {
+        textNode.x(x + 8)
+    }
 
-    textNode.name(name)
-    textNode.setAttr('row-index', null)
-    textNode.setAttr('col-index', null)
-
-    // 始终应用左侧 8px 内边距；若给定 cellHeight 则做垂直居中基准定位
-    textNode.x(getTextX(x))
-    textNode.y(cellHeight ? y + cellHeight / 2 : y)
-
-    textNode.text(text)
-    textNode.fontSize(fontSize)
-    textNode.fontFamily(fontFamily)
-    textNode.fill(fill)
-    textNode.opacity(opacity)
-    textNode.align(align)
-    textNode.verticalAlign(verticalAlign)
-
-    if (align === 'center' && verticalAlign === 'middle') {
-        const w = textNode.width()
-        const h = textNode.height()
-        textNode.offset({ x: w / 2, y: h / 2 })
-    } else if (verticalAlign === 'middle') {
+    // 垂直居中
+    if (verticalAlign === 'middle') {
+        textNode.y(y + cellHeight / 2)
         textNode.offsetY(textNode.height() / 2)
     }
-
-    if (offsetX || offsetY) {
-        const prev = textNode.offset()
-        textNode.offset({ x: (prev.x || 0) + (offsetX || 0), y: (prev.y || 0) + (offsetY || 0) })
-    }
-
+    group.add(textNode)
     return textNode
 }
 
@@ -325,75 +335,6 @@ export const createUnifiedCellRect = (config: {
     config.group.add(rect)
     return rect
 }
-// TODO drawUnifiedText 和 createUnifiedCellText 文字位置要统一
-/**
- * 创建统一单元格文本 - 支持 Header 和 Summary
- * @param {Object} config - 配置参数
- * @param {string} config.name - 节点名称
- * @param {string} config.text - 文本内容
- * @param {number} config.x - x坐标
- * @param {number} config.y - y坐标
- * @param {number} config.width - 宽度
- * @param {number} config.height - 高度
- * @param {number} config.fontSize - 字体大小
- * @param {string} config.fontFamily - 字体族
- * @param {string} config.fill - 文本颜色
- * @param {string} config.align - 水平对齐
- * @param {string} config.verticalAlign - 垂直对齐
- * @param {boolean} config.listening - 是否监听事件
- * @param {Konva.Group} config.group - 父组
- * @returns {Konva.Text} 文本节点
- */
-export const createUnifiedCellText = (config: {
-    name: string
-    text: string
-    x: number
-    y: number
-    width: number
-    height: number
-    fontSize: number
-    fontFamily: string
-    fill: string
-    align: string
-    verticalAlign: string
-    listening: boolean
-    group: Konva.Group
-}) => {
-    const textNode = new Konva.Text({
-        name: config.name,
-        text: config.text,
-        x: config.x,
-        y: config.y,
-        fontSize: config.fontSize,
-        fontFamily: config.fontFamily,
-        fill: config.fill,
-        align: config.align,
-        verticalAlign: config.verticalAlign,
-        width: config.width,
-        height: config.height,
-        listening: config.listening
-    })
-
-    // 手动设置文本位置（模拟 drawUnifiedText 的 useGetTextX 逻辑）
-    if (config.align === 'center') {
-        textNode.x(config.x + config.width / 2)
-        textNode.offsetX(textNode.width() / 2)
-    } else if (config.align === 'right') {
-        textNode.x(config.x + config.width - 8)
-    } else {
-        textNode.x(config.x + 8)
-    }
-
-    // 垂直居中
-    if (config.verticalAlign === 'middle') {
-        textNode.y(config.y + config.height / 2)
-        textNode.offsetY(textNode.height() / 2)
-    }
-
-    config.group.add(textNode)
-    return textNode
-}
-
 
 /**
  * 获取单元格显示值
@@ -453,7 +394,7 @@ export const createGroup = (
     clip?: ClipOptions
 ): Konva.Group => {
 
-    const groupName = groupType === 'scrollbar' 
+    const groupName = groupType === 'scrollbar'
         ? `${position}-${groupType}-group`
         : `${position}-${groupType}${clip ? '-clip' : ''}-group`
 

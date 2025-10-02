@@ -226,9 +226,11 @@ const drawMergedCell = (
         fontSize: bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
-        align: columnOption.columnName === '__index__' ? 'left' : (columnOption.align || 'left'),
-        verticalAlign: 'middle',
-        cellHeight
+        align: columnOption.align ?? 'left',
+        verticalAlign: columnOption.verticalAlign ?? 'middle',
+        cellHeight,
+        cellWidth,
+        group: bodyGroup
     })
     bodyGroup.add(mergedCellText)
 }
@@ -268,21 +270,17 @@ const drawNormalCell = (
         width: cellWidth,
         height: cellHeight,
         fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
-        // fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
         stroke: staticParams.borderColor,
-        strokeWidth: 1
-    })
+        strokeWidth: 1,
 
-    // cellRect.off('click.cell')
-    // cellRect.on('click.cell', handleClick)
+    })
     bodyGroup.add(cellRect)
 
     // 绘制单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)
     const maxTextWidth = cellWidth - 16
     const truncatedValue = truncateText(value, maxTextWidth, bodyFontSize, staticParams.bodyFontFamily)
-
-    const cellText = drawUnifiedText({
+    drawUnifiedText({
         pools,
         name: 'cell-text',
         text: truncatedValue,
@@ -293,9 +291,10 @@ const drawNormalCell = (
         fill: staticParams.bodyTextColor,
         align: columnOption.align ?? 'left',
         verticalAlign: columnOption.verticalAlign ?? 'middle',
-        cellHeight
+        cellHeight,
+        cellWidth,
+        group: bodyGroup
     })
-    bodyGroup.add(cellText)
 }
 
 
