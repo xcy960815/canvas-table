@@ -7,6 +7,73 @@ import { bodyVars, calculateVisibleRows, calculateColumnsInfo, columnsInfo, crea
 import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart, getSummaryRowHeight } from './summary-handler'
 import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions, calculateScrollRange, createVerticalScrollbarGroup, createHorizontalScrollbarGroup } from './scrollbar-handler'
 
+/**
+ * 更新列宽调整指示线（直接调用，不使用 RAF 节流）
+ * @returns {void}
+ */
+const updateResizeIndicator = () => {
+    if (!headerVars.isResizingColumn || !headerVars.resizingColumnName) return
+    
+    const { height: stageHeight, width: stageWidth } = getStageSize()
+    
+    // 找到目标列并确定其所在分区
+    const targetColumnInLeft = columnsInfo.leftColumns.find(c => c.columnName === headerVars.resizingColumnName)
+    const targetColumnInCenter = columnsInfo.centerColumns.find(c => c.columnName === headerVars.resizingColumnName)
+    const targetColumnInRight = columnsInfo.rightColumns.find(c => c.columnName === headerVars.resizingColumnName)
+    
+    let indicatorX = 0
+    
+    if (targetColumnInLeft) {
+        // 左固定列：从0开始累加
+        for (const col of columnsInfo.leftColumns) {
+            if (col.columnName === headerVars.resizingColumnName) {
+                indicatorX += headerVars.resizeTempWidth
+                break
+            }
+            indicatorX += col.width || 0
+        }
+    } else if (targetColumnInCenter) {
+        // 中间列：从左固定列宽度开始，减去滚动偏移
+        indicatorX = columnsInfo.leftPartWidth
+        for (const col of columnsInfo.centerColumns) {
+            if (col.columnName === headerVars.resizingColumnName) {
+                indicatorX += headerVars.resizeTempWidth
+                break
+            }
+            indicatorX += col.width || 0
+        }
+        indicatorX -= scrollbarVars.stageScrollX
+    } else if (targetColumnInRight) {
+        // 右固定列：从舞台右侧开始，往左累加
+        indicatorX = stageWidth - columnsInfo.rightPartWidth
+        for (const col of columnsInfo.rightColumns) {
+            if (col.columnName === headerVars.resizingColumnName) {
+                indicatorX += headerVars.resizeTempWidth
+                break
+            }
+            indicatorX += col.width || 0
+        }
+    } else {
+        return // 未找到目标列
+    }
+    
+    // 创建或更新指示线
+    if (!headerVars.resizeIndicatorLine) {
+        headerVars.resizeIndicatorLine = new Konva.Line({
+            points: [indicatorX, 0, indicatorX, stageHeight],
+            stroke: '#4A90E2',
+            strokeWidth: 2,
+            dash: [5, 5],
+            listening: false
+        })
+        headerVars.headerLayer?.add(headerVars.resizeIndicatorLine)
+    } else {
+        headerVars.resizeIndicatorLine.points([indicatorX, 0, indicatorX, stageHeight])
+    }
+    
+    headerVars.headerLayer?.batchDraw()
+}
+
 
 interface StageVars {
     stage: Konva.Stage | null,
@@ -464,6 +531,17 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         updateScrollPositions()
         return
     }
+
+    // 列宽调整处理 - 直接更新指示线位置
+    if (headerVars.isResizingColumn) {
+        const deltaX = mouseEvent.clientX - headerVars.resizeStartX
+        const newWidth = Math.max(50, headerVars.resizeStartWidth + deltaX) // 最小宽度 50px
+        
+        headerVars.resizeTempWidth = newWidth
+        updateResizeIndicator() // 直接调用，浏览器会自动优化重绘频率
+        return
+    }
+    
 }
 
 /**
@@ -472,16 +550,53 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
  */
 export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
     if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
-    // 滚动条拖拽结束
-    if (scrollbarVars.isDraggingVerticalThumb || scrollbarVars.isDraggingHorizontalThumb) {
+    
+    // 垂直滚动条拖拽结束
+    if (scrollbarVars.isDraggingVerticalThumb) {
         scrollbarVars.isDraggingVerticalThumb = false
+        setPointerStyle(stageVars.stage, false, 'default')
+        if (scrollbarVars.verticalScrollbarThumb) {
+            scrollbarVars.verticalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
+        }
+        scrollbarVars.scrollbarLayer?.batchDraw()
+    }
+    
+    // 横向滚动条拖拽结束
+    if (scrollbarVars.isDraggingHorizontalThumb) {
         scrollbarVars.isDraggingHorizontalThumb = false
         setPointerStyle(stageVars.stage, false, 'default')
-        if (scrollbarVars.verticalScrollbarThumb && !scrollbarVars.isDraggingVerticalThumb)
-            scrollbarVars.verticalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
-        if (scrollbarVars.horizontalScrollbarThumb && !scrollbarVars.isDraggingHorizontalThumb)
+        if (scrollbarVars.horizontalScrollbarThumb) {
             scrollbarVars.horizontalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
+        }
         scrollbarVars.scrollbarLayer?.batchDraw()
+    }
+    
+    // 列宽调整结束 - 应用最终宽度
+    if (headerVars.isResizingColumn) {
+        // 应用最终宽度
+        const allFields = [...staticParams.xAxisFields, ...staticParams.yAxisFields]
+        const targetField = allFields.find(f => f.columnName === headerVars.resizingColumnName)
+        
+        if (targetField && headerVars.resizeTempWidth > 0) {
+            targetField.width = headerVars.resizeTempWidth
+            // 重新计算列信息并重绘
+            calculateColumnsInfo()
+            clearGroups()
+            rebuildGroups()
+        }
+        
+        // 清理调整指示线
+        if (headerVars.resizeIndicatorLine) {
+            headerVars.resizeIndicatorLine.destroy()
+            headerVars.resizeIndicatorLine = null
+            headerVars.headerLayer?.batchDraw()
+        }
+        
+        // 重置状态
+        headerVars.isResizingColumn = false
+        headerVars.resizingColumnName = null
+        headerVars.resizeTempWidth = 0
+        setPointerStyle(stageVars.stage, false, 'default')
     }
 }
 
