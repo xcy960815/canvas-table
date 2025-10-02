@@ -1,7 +1,7 @@
 import Konva from 'konva'
 import { reactive } from 'vue'
 import { webworker } from '@/composables/useWebworker';
-import { createUnifiedCellRect, createGroup, truncateText,drawUnifiedText } from "./utils"
+import { drawUnifiedRect, createGroup, truncateText,drawUnifiedText } from "./utils"
 import { stageVars } from './stage-handler'
 import { setPointerStyle } from "./utils"
 import { staticParams, tableData } from './parameter'
@@ -196,7 +196,7 @@ export const drawSummaryPart = (
         const colWidth = col.width || 0
 
         // 使用统一函数创建汇总行矩形
-        const summaryCellRect = createUnifiedCellRect({
+        const summaryCellRect = drawUnifiedRect({
             name: 'summary-cell-rect',
             x,
             y: 0,

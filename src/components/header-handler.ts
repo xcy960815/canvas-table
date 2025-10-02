@@ -11,7 +11,7 @@ import {
     truncateText,
     setPointerStyle,
     createGroup,
-    createUnifiedCellRect,
+    drawUnifiedRect,
     drawUnifiedText,
 } from './utils'
 
@@ -455,7 +455,7 @@ export const drawHeaderPart = (
             continue
         }
         // 创建背景矩形
-        createUnifiedCellRect({
+        drawUnifiedRect({
             name: 'header-cell-rect',
             x,
             y: 0,

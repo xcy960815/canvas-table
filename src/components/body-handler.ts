@@ -199,7 +199,7 @@ const drawMergedCell = (
     bodyFontSize: number
 ) => {
     // 绘制合并单元格背景
-    const mergedCellRect = drawUnifiedRect({
+    drawUnifiedRect({
         pools,
         name: 'merged-cell-rect',
         x,
@@ -208,16 +208,16 @@ const drawMergedCell = (
         height: cellHeight,
         fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
         stroke: staticParams.borderColor,
-        strokeWidth: 1
+        strokeWidth: 1,
+        group: bodyGroup
     })
-    bodyGroup.add(mergedCellRect)
 
     // 绘制合并单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)
     const maxTextWidth = cellWidth - 16
     const truncatedValue = truncateText(value, maxTextWidth, bodyFontSize, staticParams.bodyFontFamily)
 
-    const mergedCellText = drawUnifiedText({
+    drawUnifiedText({
         pools,
         name: 'merged-cell-text',
         text: truncatedValue,
@@ -232,7 +232,6 @@ const drawMergedCell = (
         cellWidth,
         group: bodyGroup
     })
-    bodyGroup.add(mergedCellText)
 }
 
 
@@ -262,7 +261,7 @@ const drawNormalCell = (
     bodyFontSize: number
 ) => {
     // 绘制单元格背景
-    const cellRect = drawUnifiedRect({
+    drawUnifiedRect({
         pools,
         name: 'cell-rect',
         x,
@@ -272,9 +271,9 @@ const drawNormalCell = (
         fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
         stroke: staticParams.borderColor,
         strokeWidth: 1,
-
+        group: bodyGroup
     })
-    bodyGroup.add(cellRect)
+
 
     // 绘制单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)

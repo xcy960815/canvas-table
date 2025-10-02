@@ -186,17 +186,18 @@ export interface DrawTextConfig {
  * 绘制矩形配置接口
  */
 export interface DrawRectConfig {
-    pools: KonvaNodePools
+    pools?: KonvaNodePools
     name: string
     x: number
     y: number
     width: number
     height: number
-    fill?: string
-    stroke?: string
-    strokeWidth?: number
+    fill: string
+    stroke: string
+    strokeWidth: number
     cornerRadius?: number
     listening?: boolean
+    group: Konva.Group
 }
 
 /**
@@ -273,22 +274,39 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
  * @returns {Konva.Rect} 矩形节点
  */
 export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
-    const { pools, name, x, y, width, height, fill, stroke, strokeWidth = 1, cornerRadius = 0, listening = true } = config
-
-    const rect: Konva.Rect = getFromPool<Konva.Rect>(pools.cellRects, () => new Konva.Rect({ listening, name }))
-    rect.name(name)
-    rect.off('click')
-    rect.off('mouseenter')
-    rect.off('mouseleave')
-    rect.x(x)
-    rect.y(y)
-    rect.width(width)
-    rect.height(height)
-    if (fill !== undefined) rect.fill(fill)
-    if (stroke !== undefined) rect.stroke(stroke)
-    rect.strokeWidth(strokeWidth)
-    if (cornerRadius) rect.cornerRadius(cornerRadius)
-    return rect
+    const { pools, name, x, y, width, height, fill, stroke, strokeWidth , cornerRadius, listening, group } = config
+    let rectNode = null
+    if (pools) {
+        rectNode = getFromPool(pools.cellRects, () => new Konva.Rect({ listening, name }))
+        rectNode.name(name)
+        rectNode.off('click')
+        rectNode.off('mouseenter')
+        rectNode.off('mouseleave')
+        rectNode.x(x)
+        rectNode.y(y)
+        rectNode.width(width)
+        rectNode.height(height)
+        rectNode.fill(fill)
+        rectNode.stroke(stroke)
+        rectNode.strokeWidth(strokeWidth)
+        rectNode.cornerRadius(cornerRadius)
+    } else {
+        rectNode = new Konva.Rect({ listening, name })
+        rectNode.name(name)
+        rectNode.off('click')
+        rectNode.off('mouseenter')
+        rectNode.off('mouseleave')
+        rectNode.x(x)
+        rectNode.y(y)
+        rectNode.width(width)
+        rectNode.height(height)
+        rectNode.fill(fill)
+        rectNode.stroke(stroke)
+        rectNode.strokeWidth(strokeWidth)
+        rectNode.cornerRadius(cornerRadius)
+    }
+    group.add(rectNode)
+    return rectNode
 }
 
 /**

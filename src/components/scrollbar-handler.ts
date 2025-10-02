@@ -9,6 +9,7 @@ import {
     setPointerStyle,
     constrainToRange,
     createUnifiedCellRect,
+    drawUnifiedRect,
     createGroup,
 } from './utils'
 
@@ -533,7 +534,7 @@ export const drawHorizontalScrollbarPart = () => {
     const thumbX = leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
 
     // 绘制水平滚动条滑块
-    scrollbarVars.horizontalScrollbarThumb = createUnifiedCellRect({
+    scrollbarVars.horizontalScrollbarThumb = drawUnifiedRect({
         name: 'horizontal-scrollbar-thumb',
         x: thumbX,
         y: stageHeight - staticParams.scrollbarSize + 2,
