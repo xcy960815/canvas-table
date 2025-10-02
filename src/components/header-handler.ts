@@ -20,10 +20,13 @@ interface HeaderVars {
     leftHeaderGroup: Konva.Group | null,
     centerHeaderGroup: Konva.Group | null,
     rightHeaderGroup: Konva.Group | null,
-    isResizingColumn: boolean
-    resizingColumnName: string | null
-    resizeStartX: number
-    resizeStartWidth: number
+    // 列宽调整相关字段
+    isResizingColumn: boolean // 是否正在调整列宽
+    resizingColumnName: string | null // 正在调整的列名
+    resizeStartX: number // 开始拖拽时的鼠标X坐标
+    resizeStartWidth: number // 开始拖拽时的列宽
+    resizeTempWidth: number // 拖拽过程中的临时宽度
+    resizeIndicatorLine: Konva.Line | null // 调整指示线
 }
 
 interface SortColumn {
@@ -79,15 +82,14 @@ export const headerVars: HeaderVars = {
      */
     rightHeaderGroup: null,
     /**
-     * 列宽拖拽相关变量
+     * 列宽调整相关字段
      */
     isResizingColumn: false,
-
     resizingColumnName: null,
-
     resizeStartX: 0,
-
-    resizeStartWidth: 0
+    resizeStartWidth: 0,
+    resizeTempWidth: 0,
+    resizeIndicatorLine: null
 }
 
 export const sortColumns = ref<SortColumn[]>([])
@@ -286,6 +288,7 @@ const createColumnResizer = (
         headerVars.resizingColumnName = columnOption.columnName
         headerVars.resizeStartX = evt.evt.clientX
         headerVars.resizeStartWidth = columnOption.width || 0
+        headerVars.resizeTempWidth = columnOption.width || 0
         setPointerStyle(stageVars.stage, true, 'col-resize')
     })
 

@@ -268,7 +268,6 @@ export const updateVerticalScroll = (offsetY: number) => {
 
     const actualOffsetY = offsetY
     
-    
     const { maxVerticalScroll } = calculateScrollRange()
 
     scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxVerticalScroll)
