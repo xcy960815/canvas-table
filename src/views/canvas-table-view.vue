@@ -289,7 +289,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     displayName: '序号',
     width: 100,
     fixed: 'left',
-    align: 'center'
+    align: 'left'
   },
   {
     columnName: 'id',

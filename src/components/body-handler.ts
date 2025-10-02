@@ -290,7 +290,6 @@ const drawNormalCell = (
         fill: staticParams.bodyTextColor,
         align: columnOption.align ?? 'left',
         verticalAlign: columnOption.verticalAlign ?? 'middle',
-        
         group: bodyGroup
     })
 }
