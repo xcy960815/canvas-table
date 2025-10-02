@@ -8,7 +8,6 @@ import {
     getTableContainer,
     setPointerStyle,
     constrainToRange,
-    createUnifiedCellRect,
     drawUnifiedRect,
     createGroup,
 } from './utils'
@@ -398,7 +397,7 @@ export const drawVerticalScrollbarPart = () => {
     const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
     // 绘制垂直滚动条顶部遮罩（覆盖表头部分）
-    createUnifiedCellRect({
+    drawUnifiedRect({
         name: 'vertical-scrollbar-top-mask',
         x: stageWidth - staticParams.scrollbarSize,
         y: 0,
@@ -413,7 +412,7 @@ export const drawVerticalScrollbarPart = () => {
 
     if (getSummaryRowHeight()) {
         // 绘制垂直滚动条底部遮罩（覆盖汇总行部分）
-        createUnifiedCellRect({
+        drawUnifiedRect({
             name: 'vertical-scrollbar-bottom-mask',
             x: stageWidth - staticParams.scrollbarSize,
             y: stageHeight - getSummaryRowHeight() - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0),
@@ -428,7 +427,7 @@ export const drawVerticalScrollbarPart = () => {
     }
 
     // 绘制垂直滚动条轨道
-    createUnifiedCellRect({
+    drawUnifiedRect({
         name: 'vertical-scrollbar-track',
         x: stageWidth - staticParams.scrollbarSize,
         y: staticParams.headerRowHeight,
@@ -449,7 +448,7 @@ export const drawVerticalScrollbarPart = () => {
     const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
 
     // 绘制垂直滚动条滑块
-    scrollbarVars.verticalScrollbarThumb = createUnifiedCellRect({
+    scrollbarVars.verticalScrollbarThumb = drawUnifiedRect({
         name: 'vertical-scrollbar-thumb',
         x: stageWidth - staticParams.scrollbarSize + 2,
         y: thumbY,
@@ -512,7 +511,7 @@ export const drawHorizontalScrollbarPart = () => {
 
     const verticalScrollbarSpaceForHorizontal = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     // 绘制水平滚动条轨道
-    createUnifiedCellRect({
+    drawUnifiedRect({
         name: 'horizontal-scrollbar-track',
         x: 0,
         y: stageHeight - staticParams.scrollbarSize,

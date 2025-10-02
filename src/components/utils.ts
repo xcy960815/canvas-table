@@ -90,17 +90,6 @@ export const getTableContainer = (): HTMLDivElement | null => {
 }
 
 /**
- * 文本起始 X 坐标（包含左侧 8px 内边距）
- * @param x 文本起始 X 坐标
- * @returns 文本起始 X 坐标（包含左侧 8px 内边距）
- */
-export const getTextX = (x: number) => {
-    return x + 8
-}
-
-
-
-/**
  * 将数值约束到指定区间 [min, max]
  * @param n 数值
  * @param min 最小值
@@ -110,10 +99,6 @@ export const getTextX = (x: number) => {
 export const constrainToRange = (n: number, min: number, max: number) => {
     return Math.max(min, Math.min(max, n))
 }
-
-
-// 对象回收逻辑迁移至 pool-handler.ts
-
 
 /**
  * 超出最大宽度时裁剪文本，并追加省略号
@@ -161,8 +146,6 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
     return result || '...'
 }
 
-// KonvaNodePools 类型迁移至 pool-handler.ts
-
 /**
  * 绘制文本配置接口
  */
@@ -172,13 +155,13 @@ export interface DrawTextConfig {
     text: string
     x: number
     y: number
+    height: number
+    width: number
     fontSize: number
     fontFamily: string
     fill: string
     align: 'left' | 'center' | 'right'
     verticalAlign: 'top' | 'middle' | 'bottom'
-    cellHeight: number
-    cellWidth: number
     group: Konva.Group
 }
 
@@ -217,8 +200,8 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         fill,
         align,
         verticalAlign,
-        cellHeight,
-        cellWidth,
+        height,
+        width,
         group
     } = config
 
@@ -228,7 +211,7 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
         textNode.name(name)
         // 始终应用左侧 8px 内边距；若给定 cellHeight 则做垂直居中基准定位
         textNode.x(x)
-        textNode.y(cellHeight ? y + cellHeight / 2 : y)
+        textNode.y(height ? y + height / 2 : y)
         textNode.text(text)
         textNode.fontSize(fontSize)
         textNode.fontFamily(fontFamily)
@@ -246,22 +229,22 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
             fill: fill,
             align: align,
             verticalAlign: verticalAlign,
-            width: cellWidth,
-            height: cellHeight,
+            width: width,
+            height: height,
         })
     }
     if (align === 'center') {
-        textNode.x(x + cellWidth / 2)
+        textNode.x(x + width / 2)
         textNode.offsetX(textNode.width() / 2)
     } else if (align === 'right') {
-        textNode.x(x + cellWidth - 8)
+        textNode.x(x + width - 8)
     } else {
         textNode.x(x + 8)
     }
 
     // 垂直居中
     if (verticalAlign === 'middle') {
-        textNode.y(y + cellHeight / 2)
+        textNode.y(y + height / 2)
         textNode.offsetY(textNode.height() / 2)
     }
     group.add(textNode)
@@ -309,50 +292,6 @@ export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
     return rectNode
 }
 
-/**
- * 创建统一单元格矩形 - 支持 Header 和 Summary
- * @param {Object} config - 配置参数
- * @param {string} config.name - 节点名称
- * @param {number} config.x - x坐标
- * @param {number} config.y - y坐标
- * @param {number} config.width - 宽度
- * @param {number} config.height - 高度
- * @param {string} config.fill - 填充色
- * @param {string} config.stroke - 边框色
- * @param {number} config.strokeWidth - 边框宽度
- * @param {boolean} config.listening - 是否监听事件
- * @param {Konva.Group} config.group - 父组
- * @returns {Konva.Rect} 矩形节点
- */
-export const createUnifiedCellRect = (config: {
-    name: string
-    x: number
-    y: number
-    width: number
-    height: number
-    fill: string
-    stroke: string
-    strokeWidth: number
-    listening: boolean
-    group: Konva.Group
-    cornerRadius?: number
-}) => {
-    const rect = new Konva.Rect({
-        name: config.name,
-        x: config.x,
-        y: config.y,
-        width: config.width,
-        height: config.height,
-        fill: config.fill,
-        stroke: config.stroke,
-        strokeWidth: config.strokeWidth,
-        listening: config.listening,
-        cornerRadius: config.cornerRadius ?? 0
-    })
-
-    config.group.add(rect)
-    return rect
-}
 
 /**
  * 获取单元格显示值

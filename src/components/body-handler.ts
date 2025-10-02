@@ -196,7 +196,6 @@ const drawMergedCell = (
     rowIndex: number,
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     row: ChartDataVo.ChartData,
-    bodyFontSize: number
 ) => {
     // 绘制合并单元格背景
     drawUnifiedRect({
@@ -215,7 +214,7 @@ const drawMergedCell = (
     // 绘制合并单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)
     const maxTextWidth = cellWidth - 16
-    const truncatedValue = truncateText(value, maxTextWidth, bodyFontSize, staticParams.bodyFontFamily)
+    const truncatedValue = truncateText(value, maxTextWidth, staticParams.bodyFontSize, staticParams.bodyFontFamily)
 
     drawUnifiedText({
         pools,
@@ -223,13 +222,13 @@ const drawMergedCell = (
         text: truncatedValue,
         x,
         y,
-        fontSize: bodyFontSize,
+        fontSize: staticParams.bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
         align: columnOption.align ?? 'left',
         verticalAlign: columnOption.verticalAlign ?? 'middle',
-        cellHeight,
-        cellWidth,
+        height:cellHeight,
+        width:cellWidth,
         group: bodyGroup
     })
 }
@@ -258,7 +257,6 @@ const drawNormalCell = (
     rowIndex: number,
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     row: ChartDataVo.ChartData,
-    bodyFontSize: number
 ) => {
     // 绘制单元格背景
     drawUnifiedRect({
@@ -278,20 +276,21 @@ const drawNormalCell = (
     // 绘制单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)
     const maxTextWidth = cellWidth - 16
-    const truncatedValue = truncateText(value, maxTextWidth, bodyFontSize, staticParams.bodyFontFamily)
+    const truncatedValue = truncateText(value, maxTextWidth, staticParams.bodyFontSize, staticParams.bodyFontFamily)
     drawUnifiedText({
         pools,
         name: 'cell-text',
         text: truncatedValue,
         x,
         y,
-        fontSize: bodyFontSize,
+        height:cellHeight,
+        width:cellWidth,
+        fontSize: staticParams.bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
         align: columnOption.align ?? 'left',
         verticalAlign: columnOption.verticalAlign ?? 'middle',
-        cellHeight,
-        cellWidth,
+        
         group: bodyGroup
     })
 }
@@ -370,7 +369,6 @@ export const drawBodyPart = (
 
     calculateVisibleRows()
 
-    const bodyFontSize = staticParams.bodyFontSize
     const spanMethod = typeof staticParams.spanMethod === 'function' ? staticParams.spanMethod : null
     const hasSpanMethod = !!spanMethod
 
@@ -417,9 +415,9 @@ export const drawBodyPart = (
 
             // 绘制单元格
             if (hasSpanMethod && (computedRowSpan > 1 || spanCol > 1)) {
-                drawMergedCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)
+                drawMergedCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row)
             } else {
-                drawNormalCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row, bodyFontSize)
+                drawNormalCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row)
             }
 
             // 计算下一个位置和跳过的列数
