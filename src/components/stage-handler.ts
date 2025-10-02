@@ -197,7 +197,7 @@ export const refreshTable = (resetScroll: boolean) => {
  */
 const rebuildHeaderGroup = () => {
     if (!headerVars.headerLayer) return
-    const { width: stageWidth, } = getStageSize()
+    const { width: stageWidth } = getStageSize()
     const { maxVerticalScroll } = calculateScrollRange()
     const verticalScrollbarWidth = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
     const { leftColumns, centerColumns, rightColumns, leftPartWidth, rightPartWidth } = getColumnsInfo()

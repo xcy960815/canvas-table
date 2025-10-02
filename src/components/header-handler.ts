@@ -152,8 +152,6 @@ export const handleTableData = () => {
             return 0
         })
     }
-
-    // 更新最终数据
     tableData.value = processedData
 }
 
@@ -200,19 +198,35 @@ const createFilterIcon = (
         name: `filter-icon-${col.columnName}`,
         sceneFunc: (context: Konva.Context, shape: Konva.Shape) => {
             context.beginPath()
-            // 漏斗形状路径
-            context.moveTo(2, 2)
-            context.lineTo(14, 2)
-            context.lineTo(11, 7)
-            context.lineTo(11, 12)
-            context.lineTo(5, 12)
-            context.lineTo(5, 7)
+            // 优化后的漏斗形状 - 更加圆润和对称
+            const padding = 2
+            const topWidth = iconSize - padding * 2
+            const bottomWidth = topWidth * 0.4
+            const neckHeight = iconSize * 0.6
+            
+            // 顶部边缘
+            context.moveTo(padding, padding + 1)
+            context.lineTo(padding + topWidth, padding + 1)
+            
+            // 右侧斜边（带圆角过渡）
+            context.lineTo(padding + topWidth * 0.7, neckHeight)
+            
+            // 底部柱状部分（右侧）
+            context.lineTo(padding + topWidth * 0.7, iconSize - padding)
+            context.lineTo(padding + topWidth * 0.3, iconSize - padding)
+            
+            // 底部柱状部分（左侧）
+            context.lineTo(padding + topWidth * 0.3, neckHeight)
+            
+            // 左侧斜边
             context.closePath()
+            
             context.fillStrokeShape(shape)
         },
         stroke: filterColor,
         strokeWidth: 1.5,
-        fill: hasFilter ? filterColor : 'transparent'
+        fill: hasFilter ? filterColor : 'transparent',
+        opacity: hasFilter ? 1 : 0.6
     })
 
     // 添加鼠标交互
@@ -244,7 +258,7 @@ const createColumnResizer = (
     x: number,
     headerGroup: Konva.Group
 ) => {
-    const resizer = new Konva.Rect({
+    const resizerRect = new Konva.Rect({
         x: x + (columnOption.width || 0) - LAYOUT_CONSTANTS.RESIZER_WIDTH / 2,
         y: 0,
         width: LAYOUT_CONSTANTS.RESIZER_WIDTH,
@@ -256,26 +270,26 @@ const createColumnResizer = (
     })
 
     // 添加鼠标交互
-    resizer.on('mouseenter', () => {
+    resizerRect.on('mouseenter', () => {
         if (!headerVars.isResizingColumn) {
             setPointerStyle(stageVars.stage, true, 'col-resize')
         }
     })
-    resizer.on('mouseleave', () => {
+    resizerRect.on('mouseleave', () => {
         if (!headerVars.isResizingColumn) {
             setPointerStyle(stageVars.stage, false, 'default')
         }
     })
 
-    headerGroup.add(resizer)
-
-    resizer.on('mousedown', (evt: Konva.KonvaEventObject<MouseEvent>) => {
+    resizerRect.on('mousedown', (evt: Konva.KonvaEventObject<MouseEvent>) => {
         headerVars.isResizingColumn = true
         headerVars.resizingColumnName = columnOption.columnName
         headerVars.resizeStartX = evt.evt.clientX
         headerVars.resizeStartWidth = columnOption.width || 0
         setPointerStyle(stageVars.stage, true, 'col-resize')
     })
+
+    headerGroup.add(resizerRect)
 }
 /**
  * 创建排序指示器 - 上下两个箭头
@@ -353,8 +367,6 @@ const handleSortAction = (
     order: 'asc' | 'desc'
 ) => {
     const currentIndex = sortColumns.value.findIndex((s) => s.columnName === columnOption.columnName)
-
-    // 多列排序模式
     handleMultiColumnSort(columnOption, order, currentIndex)
 
     handleTableData()

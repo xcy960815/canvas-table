@@ -108,18 +108,17 @@ export const constrainToRange = (n: number, min: number, max: number) => {
  * @param fontFamily 字体
  * @returns 裁剪后的文本
  */
-export const truncateText = (text: string, maxWidth: number, fontSize: number | string, fontFamily: string): string => {
-    fontSize = typeof fontSize === 'string' ? Number(fontSize) : fontSize
+export const truncateText = (text: string, maxWidth: number, fontSize: number, fontFamily: string): string => {
     // 创建一个临时文本节点来测量文本宽度
-    const tempText = new Konva.Text({
+    const tempTextNode = new Konva.Text({
         text: text,
         fontSize: fontSize,
         fontFamily: fontFamily
     })
 
     // 如果文本宽度小于等于 maxWidth，直接返回
-    if (tempText.width() <= maxWidth) {
-        tempText.destroy()
+    if (tempTextNode.width() <= maxWidth) {
+        tempTextNode.destroy()
         return text
     }
 
@@ -132,9 +131,9 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
         const mid = Math.floor((left + right) / 2)
         const testText = text.substring(0, mid) + '...'
 
-        tempText.text(testText)
+        tempTextNode.text(testText)
 
-        if (tempText.width() <= maxWidth) {
+        if (tempTextNode.width() <= maxWidth) {
             result = testText
             left = mid + 1
         } else {
@@ -142,7 +141,7 @@ export const truncateText = (text: string, maxWidth: number, fontSize: number | 
         }
     }
 
-    tempText.destroy()
+    tempTextNode.destroy()
     return result || '...'
 }
 
@@ -169,7 +168,6 @@ export interface DrawTextConfig {
  * 绘制矩形配置接口
  */
 export interface DrawRectConfig {
-    pools?: KonvaNodePools
     name: string
     x: number
     y: number
@@ -178,9 +176,10 @@ export interface DrawRectConfig {
     fill: string
     stroke: string
     strokeWidth: number
+    group: Konva.Group
     cornerRadius?: number
     listening?: boolean
-    group: Konva.Group
+    pools?: KonvaNodePools
 }
 
 /**
@@ -262,7 +261,6 @@ export const drawUnifiedText = (config: DrawTextConfig) => {
  */
 export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
     const { pools, name, x, y, width, height, fill, stroke, strokeWidth, cornerRadius, listening, group } = config
-
     // 创建或复用矩形节点
     const rectNode = pools
         ? getFromPool(pools.cellRects, () => new Konva.Rect({ listening, name }))
@@ -284,7 +282,6 @@ export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
         strokeWidth,
         cornerRadius
     })
-
     group.add(rectNode)
     return rectNode
 }

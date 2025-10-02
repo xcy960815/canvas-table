@@ -134,30 +134,36 @@ export const getColumnsInfo = () => {
     const yAxisFields = staticParams.yAxisFields
     const tableColumns = xAxisFields.concat(yAxisFields).map((columnOption, index) => ({
         ...columnOption,
-        align: columnOption.align ?? 'left',
-        verticalAlign: columnOption.verticalAlign ?? 'middle',
+        align: columnOption.align ?? 'left', // 添加默认值
+        verticalAlign: columnOption.verticalAlign ?? 'middle', // 添加默认值
         colIndex: index
     }))
 
-    // 计算滚动条预留宽度 高度
-    // const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
+    // 计算滚动条预留宽度
+    const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
     // 计算内容高度
-    // const contentHeight = tableData.value.length * staticParams.bodyRowHeight
+    const contentHeight = tableData.value.length * staticParams.bodyRowHeight
     // 计算垂直滚动条预留空间
-    // const verticalScrollbarSpace =
-    //     contentHeight > stageHeightRaw - staticParams.headerRowHeight - staticParams.summaryRowHeight ? staticParams.scrollbarSize : 0
-    // 计算内容宽度
-    // const stageWidth = stageWidthRaw - verticalScrollbarSpace
+    const verticalScrollbarSpace =
+        contentHeight > stageHeightRaw - staticParams.headerRowHeight - getSummaryRowHeight() ? staticParams.scrollbarSize : 0
+    // 计算可用宽度
+    const stageWidth = stageWidthRaw - verticalScrollbarSpace
 
     // 计算已设置宽度的列的总宽度
-    // const fixedWidthColumns = tableColumns.filter((c) => c.width !== undefined)
-    // const autoWidthColumns = tableColumns.filter((c) => c.width === undefined)
-    // const fixedTotalWidth = fixedWidthColumns.reduce((acc, c) => acc + (c.width || 0), 0)
+    const fixedWidthColumns = tableColumns.filter((c) => c.width !== undefined)
+    const autoWidthColumns = tableColumns.filter((c) => c.width === undefined)
+    const fixedTotalWidth = fixedWidthColumns.reduce((acc, c) => acc + (c.width || 0), 0)
 
-    // 计算自动宽度列应该分配的宽度
-    // const remainingWidth = Math.max(0, stageWidth - fixedTotalWidth)
-    // const rawAutoWidth = autoWidthColumns.length > 0 ? remainingWidth / autoWidthColumns.length : 0
-    // const autoColumnWidth = Math.max(staticParams.minAutoColWidth, rawAutoWidth)
+    // 计算自动宽度列应该分配的宽度（所有未设置宽度的列均分剩余空间）
+    const remainingWidth = Math.max(0, stageWidth - fixedTotalWidth)
+    const rawAutoWidth = autoWidthColumns.length > 0 ? remainingWidth / autoWidthColumns.length : 0
+    const autoColumnWidth = Math.max(staticParams.minAutoColWidth, rawAutoWidth)
+
+    // 为未设置宽度的列分配宽度
+    autoWidthColumns.forEach((col) => {
+        col.width = autoColumnWidth
+    })
+
     const leftColumns = tableColumns.filter((c) => c.fixed === 'left')
     const centerColumns = tableColumns.filter((c) => !c.fixed)
     const rightColumns = tableColumns.filter((c) => c.fixed === 'right')

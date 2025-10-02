@@ -265,7 +265,7 @@ export const staticParams: StaticParams = {
 }
 
 /**
-* 表格数据
+* 表格数据 不参与视图更新啥的 没必要整成响应式数据
 */
 export const tableData: { value: Array<ChartDataVo.ChartData> } = {
   value: []
