@@ -287,7 +287,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     columnType: 'number',
     columnComment: '序号',
     displayName: '序号',
-    width: 100,
+    // width: 100,
     fixed: 'left',
     align: 'left'
   },
@@ -296,7 +296,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     columnType: 'number',
     columnComment: 'id',
     displayName: 'id',
-    width: 200,
+    // width: 200,
     filterable: true,
     editable: true,
     editType: 'input'
@@ -339,7 +339,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     columnName: 'country',
     columnType: 'string',
     columnComment: 'country',
-    width: 200,
+    // width: 200,
     filterable: true,
     sortable: true,
     displayName: 'country',

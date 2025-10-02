@@ -126,10 +126,43 @@ const sumWidth = (columns: Array<GroupStore.GroupOption | DimensionStore.Dimensi
 }
 
 /**
- * 计算左右固定列与中间列的分组与宽度汇总
- * @returns {Object} 分组与宽度汇总
+ * 列信息存储结果
  */
-export const getColumnsInfo = () => {
+interface ColumnsInfo {
+    leftColumns: Array<(GroupStore.GroupOption | DimensionStore.DimensionOption) & { colIndex: number }>
+    centerColumns: Array<(GroupStore.GroupOption | DimensionStore.DimensionOption) & { colIndex: number }>
+    rightColumns: Array<(GroupStore.GroupOption | DimensionStore.DimensionOption) & { colIndex: number }>
+    leftPartWidth: number
+    centerPartWidth: number
+    rightPartWidth: number
+    totalWidth: number
+}
+
+/**
+ * 已计算的列信息（可以直接访问使用）
+ */
+export const columnsInfo: ColumnsInfo = {
+    leftColumns: [],
+    centerColumns: [],
+    rightColumns: [],
+    leftPartWidth: 0,
+    centerPartWidth: 0,
+    rightPartWidth: 0,
+    totalWidth: 0
+}
+
+/**
+ * 计算并更新列信息（主动计算）
+ * 应该在以下情况调用：
+ * 1. Stage 初始化后
+ * 2. 窗口 resize
+ * 3. 列配置变化
+ * 4. 数据总行数变化（影响垂直滚动条）
+ */
+export const calculateColumnsInfo = () => {
+    console.log('🔍 计算列信息 calculateColumnsInfo')
+    
+    const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
     const xAxisFields = staticParams.xAxisFields
     const yAxisFields = staticParams.yAxisFields
     const tableColumns = xAxisFields.concat(yAxisFields).map((columnOption, index) => ({
@@ -140,8 +173,6 @@ export const getColumnsInfo = () => {
     }))
 
     // 计算滚动条预留宽度
-    const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
-    // 计算内容高度
     const contentHeight = tableData.value.length * staticParams.bodyRowHeight
     // 计算垂直滚动条预留空间
     const verticalScrollbarSpace =
@@ -164,20 +195,16 @@ export const getColumnsInfo = () => {
         col.width = autoColumnWidth
     })
 
-    const leftColumns = tableColumns.filter((c) => c.fixed === 'left')
-    const centerColumns = tableColumns.filter((c) => !c.fixed)
-    const rightColumns = tableColumns.filter((c) => c.fixed === 'right')
+    columnsInfo.leftColumns = tableColumns.filter((c) => c.fixed === 'left')
+    columnsInfo.centerColumns = tableColumns.filter((c) => !c.fixed)
+    columnsInfo.rightColumns = tableColumns.filter((c) => c.fixed === 'right')
 
-    return {
-        leftColumns,
-        centerColumns,
-        rightColumns,
-        leftPartWidth: sumWidth(leftColumns),
-        centerPartWidth: sumWidth(centerColumns),
-        rightPartWidth: sumWidth(rightColumns),
-        totalWidth: sumWidth(tableColumns)
-    }
+    columnsInfo.leftPartWidth = columnsInfo.leftColumns.reduce((acc, c) => acc + (c.width || 0), 0)
+    columnsInfo.centerPartWidth = columnsInfo.centerColumns.reduce((acc, c) => acc + (c.width || 0), 0)
+    columnsInfo.rightPartWidth = columnsInfo.rightColumns.reduce((acc, c) => acc + (c.width || 0), 0)
+    columnsInfo.totalWidth = columnsInfo.leftPartWidth + columnsInfo.centerPartWidth + columnsInfo.rightPartWidth
 }
+
 
 /**
  * 创建合并单元格
@@ -371,8 +398,6 @@ export const drawBodyPart = (
     pools: KonvaNodePools
 ) => {
     if (!stageVars.stage || !bodyGroup) return
-
-    calculateVisibleRows()
 
     const spanMethod = typeof staticParams.spanMethod === 'function' ? staticParams.spanMethod : null
     const hasSpanMethod = !!spanMethod
