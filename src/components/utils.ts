@@ -282,7 +282,9 @@ export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
         strokeWidth,
         cornerRadius
     })
+
     group.add(rectNode)
+    
     return rectNode
 }
 

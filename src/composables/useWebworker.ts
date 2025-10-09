@@ -26,6 +26,7 @@ class Webworker {
 
   /**
    * 获取统计信息
+   * @returns 统计信息
    */
   get stats(): Readonly<Webworker.WorkerStats> {
     return { ...this._stats }
@@ -33,6 +34,7 @@ class Webworker {
 
   /**
    * 获取已注册的 action 数量
+   * @returns action 数量
    */
   get actionCount(): number {
     return this._actions.size
@@ -40,6 +42,8 @@ class Webworker {
 
   /**
    * 检查 action 是否已存在
+   * @param messageName - 消息名称
+   * @returns 是否存在
    */
   private _hasAction(messageName: string): boolean {
     return this._actions.has(messageName)
@@ -47,6 +51,8 @@ class Webworker {
 
   /**
    * 移除指定的 action
+   * @param messageName - 消息名称
+   * @returns 是否移除
    */
   private _removeAction(messageName: string): boolean {
     return this._actions.delete(messageName)
@@ -54,12 +60,15 @@ class Webworker {
 
   /**
    * 创建可销毁的 Worker
+   * @param workerScript - Worker 脚本
+   * @param options - Worker 选项
+   * @returns 可销毁的 Worker
    */
   private _createDisposableWorker(workerScript: string, options: Webworker.WorkerOptions = {}): Webworker.Worker {
     const mergedOptions = { ...this._defaultOptions, ...options }
 
     // 使用更安全的 URL 创建方式
-    const URL = window.URL || (window as any).webkitURL
+    const URL = window.URL || window.webkitURL
     const workerScriptBlob = new Blob([workerScript], {
       type: 'application/javascript'
     })
@@ -118,6 +127,9 @@ class Webworker {
 
   /**
    * 更新统计信息
+   * @param {boolean} success - 是否成功
+   * @param {number} executionTime - 执行时间
+   * @returns {void}
    */
   private _updateStats(success: boolean, executionTime: number): void {
     this._stats.totalExecutions++
@@ -136,6 +148,8 @@ class Webworker {
 
   /**
    * 创建 Worker 脚本
+   * @param callback - Worker 回调
+   * @returns Worker 脚本
    */
   createWorkerScript<T>(callback: () => T): string {
     const callbackStr = callback.toString()
@@ -167,6 +181,9 @@ class Webworker {
 
   /**
    * 执行 Worker 任务
+   * @param {() => R} callback - Worker 回调
+   * @param {Webworker.WorkerOptions} options - Worker 选项
+   * @returns {Promise<Webworker.WorkerResult<R>>} Worker 结果
    */
   public async run<R>(callback: () => R, options?: Webworker.WorkerOptions): Promise<Webworker.WorkerResult<R>> {
     try {
@@ -189,6 +206,9 @@ class Webworker {
 
   /**
    * 通过消息名称执行 Worker 任务
+   * @param {string} messageName - 消息名称
+   * @param {Webworker.WorkerOptions} options - Worker 选项
+   * @returns {Promise<Webworker.WorkerResult<R>>} Worker 结果
    */
   public async postMessage<R>(
     messageName: string,
@@ -221,6 +241,8 @@ class Webworker {
 
   /**
    * 执行所有 Worker 任务
+   * @param {Webworker.PostAllParams} params - 参数
+   * @returns {Promise<Webworker.WorkerResult<T>[]>} Worker 结果
    */
   public async postMessageAll<T extends any = any>(
     params?: Webworker.PostAllParams
@@ -269,6 +291,8 @@ class Webworker {
 
   /**
    * 添加单个或多个 actions
+   * @param {Webworker.Action | Webworker.Action[]} actions
+   * @returns actions 数量
    */
   public addActions(actions: Webworker.Action | Webworker.Action[]): number {
     const actionArray = Array.isArray(actions) ? actions : [actions]
@@ -284,6 +308,8 @@ class Webworker {
 
   /**
    * 移除单个或多个 actions
+   * @param {string | string[]} messageNames - 消息名称
+   * @returns {number} actions 数量
    */
   public removeActions(messageNames: string | string[]): number {
     const names = Array.isArray(messageNames) ? messageNames : [messageNames]
@@ -297,6 +323,7 @@ class Webworker {
 
   /**
    * 清空所有 actions
+   * @returns actions 数量
    */
   public clearActions(): void {
     this._actions.clear()
@@ -304,6 +331,7 @@ class Webworker {
 
   /**
    * 获取所有已注册的 action 名称
+   * @returns action 名称
    */
   public getActionNames(): string[] {
     return Array.from(this._actions.keys())
@@ -311,6 +339,8 @@ class Webworker {
 
   /**
    * 检查 action 是否存在
+   * @param messageName - 消息名称
+   * @returns 是否存在
    */
   public hasAction(messageName: string): boolean {
     return this._hasAction(messageName)
@@ -318,6 +348,8 @@ class Webworker {
 
   /**
    * 获取 action 信息
+   * @param messageName - 消息名称
+   * @returns action 信息
    */
   public getAction(messageName: string): Webworker.Action | undefined {
     return this._actions.get(messageName)
@@ -325,6 +357,9 @@ class Webworker {
 
   /**
    * 批量执行并收集结果
+   * @param callbacks - Worker 回调
+   * @param options - Worker 选项
+   * @returns Worker 结果
    */
   public async batchExecute<T>(
     callbacks: (() => T)[],
@@ -348,6 +383,7 @@ class Webworker {
 
   /**
    * 重置统计信息
+   * @returns void
    */
   public resetStats(): void {
     Object.assign(this._stats, {

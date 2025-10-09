@@ -74,21 +74,64 @@ export const bodyVars: BodyVars = {
     visibleRowCount: 0
 }
 
-// 快捷方法 - 表体分组
+/**
+ * 创建body左侧组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} body组
+ */
 export const createBodyLeftGroup = (x: number, y: number) => createGroup('body', 'left', x, y)
+/**
+ * 创建body中间组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} body组
+ */
 export const createBodyCenterGroup = (x: number, y: number) => createGroup('body', 'center', x, y)
+/**
+ * 创建body右侧组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} body组
+ */
 export const createBodyRightGroup = (x: number, y: number) => createGroup('body', 'right', x, y)
+
+/**
+ * 裁剪区域宽度高度
+ */
 interface ClipOptions {
     x: number
     y: number
     width: number
     height: number
 }
+
+/**
+ * 创建body左侧裁剪组
+ * @param x x坐标
+ * @param y y坐标
+ * @param {Object} clipOptions - 裁剪区域宽度高度
+ * @returns {Konva.Group} body组
+ */
 export const createLeftBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'left', x, y, clipOptions)
+/**
+ * 创建body中间裁剪组
+ * @param x x坐标
+ * @param y y坐标
+ * @param {Object} clipOptions - 裁剪区域宽度高度
+ * @returns {Konva.Group} body组
+ */
 export const createCenterBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'center', x, y, clipOptions)
+/**
+ * 创建body右侧裁剪组
+ * @param x x坐标
+ * @param y y坐标
+ * @param {Object} clipOptions - 裁剪区域宽度高度
+ * @returns {Konva.Group} body组
+ */
 export const createRightBodyClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('body', 'right', x, y, clipOptions)
 
-// 汇总行高度已迁移到 summary-handler
+
 
 /**
  * 计算可视区域数据的起始行和结束行

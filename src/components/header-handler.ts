@@ -20,33 +20,80 @@ interface HeaderVars {
     leftHeaderGroup: Konva.Group | null,
     centerHeaderGroup: Konva.Group | null,
     rightHeaderGroup: Konva.Group | null,
-    // 列宽调整相关字段
-    isResizingColumn: boolean // 是否正在调整列宽
-    resizingColumnName: string | null // 正在调整的列名
-    resizeStartX: number // 开始拖拽时的鼠标X坐标
-    resizeStartWidth: number // 开始拖拽时的列宽
-    resizeTempWidth: number // 拖拽过程中的临时宽度
-    resizeIndicatorLine: Konva.Line | null // 调整指示线
+    /**
+     * 是否正在调整列宽
+     */
+    isResizingColumn: boolean
+    /**
+     * 正在调整的列名
+     */
+    resizingColumnName: string | null
+    /**
+     * 开始拖拽时的鼠标X坐标
+     */
+    resizeStartX: number
+    /**
+     * 开始拖拽时的列宽
+     */
+    resizeStartWidth: number
+    /**
+     * 拖拽过程中的临时宽度
+     */
+    resizeTempWidth: number
+    /**
+     * 调整指示线
+     */
+    resizeIndicatorLine: Konva.Line | null
 }
 
 interface SortColumn {
+    /**
+     * 列名
+     */
     columnName: string
+    /**
+     * 排序方向
+     */
     order: 'asc' | 'desc'
 }
 
 
 const LAYOUT_CONSTANTS = {
-    ICON_AREA_WIDTH: 40, // 右侧图标区域预留宽度
-    SORT_ARROW_OFFSET: 34, // 排序箭头距离右边缘的距离
-    FILTER_ICON_OFFSET: 12, // 过滤图标距离右边缘的距离
-    RESIZER_WIDTH: 6, // 列宽调整手柄宽度
-    ARROW_SIZE: 8, // 排序箭头大小 (从5增加到8)
-    ARROW_GAP: 2, // 上下箭头间距 (从2增加到3)
-    FILTER_ICON_SIZE: 16 // 过滤图标大小
+    /**
+     * 右侧图标区域预留宽度
+     */
+    ICON_AREA_WIDTH: 40,
+    /**
+     * 排序箭头距离右边缘的距离
+     */
+    SORT_ARROW_OFFSET: 34,
+    /**
+     * 过滤图标距离右边缘的距离
+     */
+    FILTER_ICON_OFFSET: 12,
+    /**
+     * 列宽调整手柄宽度
+     */
+    RESIZER_WIDTH: 4,
+    /**
+     * 排序箭头大小
+     */
+    ARROW_SIZE: 8,
+    /**
+     * 上下箭头间距
+     */
+    ARROW_GAP: 2,
+    /**
+     * 过滤图标大小
+     */
+    FILTER_ICON_SIZE: 16
 } as const
 
 
 const COLORS = {
+    /**
+     * 不活跃颜色
+     */
     INACTIVE: '#d0d7de'
 } as const
 
@@ -85,21 +132,64 @@ export const headerVars: HeaderVars = {
      * 列宽调整相关字段
      */
     isResizingColumn: false,
+    /**
+     * 正在调整的列名
+     */
     resizingColumnName: null,
+    /**
+     * 开始拖拽时的鼠标X坐标
+     */
     resizeStartX: 0,
+    /**
+     * 开始拖拽时的列宽
+     */
     resizeStartWidth: 0,
+    /**
+     * 拖拽过程中的临时宽度
+     */
     resizeTempWidth: 0,
+    /**
+     * 调整指示线
+     */
     resizeIndicatorLine: null
 }
 
+/**
+ * 排序列
+ */
 export const sortColumns = ref<SortColumn[]>([])
 
 /**
- * 创建Header组 - 快捷方法
+ * 创建表头左侧组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} 表头组
  */
 export const createHeaderLeftGroup = (x: number, y: number) => createGroup('header', 'left', x, y)
+/**
+ * 创建表头中间组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} 表头组
+ */
 export const createHeaderCenterGroup = (x: number, y: number) => createGroup('header', 'center', x, y)
+/**
+ * 创建表头右侧组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} 表头组
+ */
 export const createHeaderRightGroup = (x: number, y: number) => createGroup('header', 'right', x, y)
+
+/**
+ * 创建表头裁剪组
+ * @param x x坐标
+ * @param y y坐标
+ * @param {Object} { width, height } - 裁剪区域宽度高度
+ * @param {number} width - 裁剪区域宽度
+ * @param {number} height - 裁剪区域高度
+ * @returns {Konva.Group} 表头组
+ */
 export const createHeaderClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('header', 'center', x, y, { x, y, width, height })
 
 
@@ -205,24 +295,24 @@ const createFilterIcon = (
             const topWidth = iconSize - padding * 2
             const bottomWidth = topWidth * 0.4
             const neckHeight = iconSize * 0.6
-            
+
             // 顶部边缘
             context.moveTo(padding, padding + 1)
             context.lineTo(padding + topWidth, padding + 1)
-            
+
             // 右侧斜边（带圆角过渡）
             context.lineTo(padding + topWidth * 0.7, neckHeight)
-            
+
             // 底部柱状部分（右侧）
             context.lineTo(padding + topWidth * 0.7, iconSize - padding)
             context.lineTo(padding + topWidth * 0.3, iconSize - padding)
-            
+
             // 底部柱状部分（左侧）
             context.lineTo(padding + topWidth * 0.3, neckHeight)
-            
+
             // 左侧斜边
             context.closePath()
-            
+
             context.fillStrokeShape(shape)
         },
         stroke: filterColor,
@@ -260,15 +350,19 @@ const createColumnResizer = (
     x: number,
     headerGroup: Konva.Group
 ) => {
-    const resizerRect = new Konva.Rect({
-        x: x + (columnOption.width || 0) - LAYOUT_CONSTANTS.RESIZER_WIDTH / 2,
+    console.log("createColumnResizer",x,columnOption.displayName);
+    
+    const resizerRect = drawUnifiedRect({
+        name: `col-resizer-${columnOption.columnName}`,
+        x: x + (columnOption.width || 0) + (LAYOUT_CONSTANTS.RESIZER_WIDTH / 2),
         y: 0,
         width: LAYOUT_CONSTANTS.RESIZER_WIDTH,
         height: staticParams.headerRowHeight,
         fill: staticParams.borderColor,
+        stroke: 'transparent',
+        strokeWidth: 0,
         listening: true,
-        draggable: false,
-        name: `col-resizer-${columnOption.columnName}`
+        group: headerGroup
     })
 
     // 添加鼠标交互
@@ -292,7 +386,6 @@ const createColumnResizer = (
         setPointerStyle(stageVars.stage, true, 'col-resize')
     })
 
-    headerGroup.add(resizerRect)
 }
 /**
  * 创建排序指示器 - 上下两个箭头

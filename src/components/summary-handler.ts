@@ -63,9 +63,35 @@ interface ClipOptions {
     x: number
     y: number
 }
+
+/**
+ * 创建summary左侧组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} summary组
+ */
 export const createSummaryLeftGroup = (x: number, y: number) => createGroup('summary', 'left', x, y)
+/**
+ * 创建summary中间组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} summary组
+ */
 export const createSummaryCenterGroup = (x: number, y: number) => createGroup('summary', 'center', x, y)
+/**
+ * 创建summary右侧组
+ * @param x x坐标
+ * @param y y坐标
+ * @returns {Konva.Group} summary组
+ */
 export const createSummaryRightGroup = (x: number, y: number) => createGroup('summary', 'right', x, y)
+/**
+ * 创建summary裁剪组
+ * @param x x坐标
+ * @param y y坐标
+ * @param {Object} clipOptions - 裁剪区域宽度高度
+ * @returns {Konva.Group} summary组
+ */
 export const createSummaryClipGroup = (x: number, y: number, clipOptions: ClipOptions) => createGroup('summary', 'center', x, y, clipOptions)
 
 /**
