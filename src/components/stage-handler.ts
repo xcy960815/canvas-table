@@ -256,6 +256,10 @@ export const refreshTable = (resetScroll: boolean) => {
     }
     clearGroups()
     rebuildGroups()
+    // 应用保存的滚动位置
+    if (!resetScroll) {
+        updateScrollPositions()
+    }
 }
 
 /**
@@ -579,10 +583,8 @@ export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
         
         if (targetField && headerVars.resizeTempWidth > 0) {
             targetField.width = headerVars.resizeTempWidth
-            // 重新计算列信息并重绘
-            calculateColumnsInfo()
-            clearGroups()
-            rebuildGroups()
+            // 刷新表格，保持滚动位置
+            refreshTable(false)
         }
         
         // 清理调整指示线
