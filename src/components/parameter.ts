@@ -188,39 +188,141 @@ export const tableProps = {
 
 
 interface StaticParams {
+  /**
+   * 图表标题
+   */
   title: string
+  /**
+   * 数据
+   */
   data: Array<ChartDataVo.ChartData>
+  /**
+   * 维度字段
+   */
   xAxisFields: Array<GroupStore.GroupOption>
+  /**
+   * 维度字段
+   */
   yAxisFields: Array<DimensionStore.DimensionOption>
+  /**
+   * 是否启用汇总
+   */
   enableSummary: boolean
+  /**
+   * 缓冲行数
+   */
   bufferRows: number
+  /**
+   * 最小自动列宽
+   */
   minAutoColWidth: number
+  /**
+   * 高亮单元格背景色
+   */
   highlightCellBackground: string
+  /**
+   * 行悬停高亮颜色（包含背景色和边框色）
+   */
   highlightRowBackground: string
+  /**
+   * 列悬停高亮颜色（包含背景色和边框色）
+   */
   highlightColBackground: string
+  /**
+   * 表头高度
+   */
   headerRowHeight: number
+  /**
+   * 列宽调整手柄宽度
+   */
   resizerWidth: number
+  /**
+   * 表头背景色
+   */
   headerBackground: string
+  /**
+   * 表头文本颜色
+   */
   headerTextColor: string
+  /**
+   * 表头字体
+   */
   headerFontFamily: string
+  /**
+   * 表头字体大小
+   */
   headerFontSize: number
+  /**
+   * 表格行高度
+   */
   bodyRowHeight: number
+  /**
+   * 表格行背景色（奇数行）
+   */
   bodyBackgroundOdd: string
+  /**
+   * 表格行背景色（偶数行）
+   */
   bodyBackgroundEven: string
+  /**
+   * 表格行文本颜色
+   */
   bodyTextColor: string
+  /**
+   * 表格行字体
+   */
   bodyFontFamily: string
+  /**
+   * 表格行字体大小
+   */
   bodyFontSize: number
+  /**
+   * 表格边框颜色
+   */
   borderColor: string
+  /**
+   * 汇总高度
+   */
   summaryRowHeight: number
+  /**
+   * 汇总背景色
+   */
   summaryBackground: string
+  /**
+   * 汇总文本颜色
+   */
   summaryTextColor: string
+  /**
+   * 汇总字体
+   */
   summaryFontFamily: string
+  /**
+   * 汇总字体大小
+   */
   summaryFontSize: number
+  /**
+   * 滚动条大小
+   */
   scrollbarSize: number
+  /**
+   * 滚动条背景色
+   */
   scrollbarBackground: string
+  /**
+   * 滚动条滑块颜色
+   */
   scrollbarThumbBackground: string
+  /**
+   * 滚动条滑块悬停颜色
+   */
   scrollbarThumbHoverBackground: string
+  /**
+   * 排序箭头颜色
+   */
   sortActiveColor: string
+  /**
+   * 合并单元格方法
+   */
   spanMethod?: (config: {
     row: ChartDataVo.ChartData
     column: GroupStore.GroupOption | DimensionStore.DimensionOption

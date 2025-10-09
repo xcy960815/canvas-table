@@ -147,7 +147,6 @@ export const calculateScrollRange = () => {
  * @param {Array<'header' | 'body' | 'fixed' | 'scrollbar' | 'summary'>} layers - 要绘制的层
  */
 export const scheduleLayersBatchDraw = (layers: Array<'header' | 'body' | 'fixed' | 'scrollbar' | 'summary'> = ['body']) => {
-    // 简化版本：直接执行绘制，不使用批量优化
     layers.forEach((layerType) => {
         switch (layerType) {
             // 表头相关

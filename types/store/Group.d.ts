@@ -59,6 +59,10 @@ declare namespace GroupStore {
     sortable?: boolean
 
     /**
+     * 是否可调整列宽
+     */
+    resizable?: boolean
+    /**
      * 是否可编辑
      */
     editable?: boolean

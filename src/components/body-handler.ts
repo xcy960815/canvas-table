@@ -203,8 +203,6 @@ export const columnsInfo: ColumnsInfo = {
  * 4. 数据总行数变化（影响垂直滚动条）
  */
 export const calculateColumnsInfo = () => {
-    console.log('🔍 计算列信息 calculateColumnsInfo')
-    
     const { width: stageWidthRaw, height: stageHeightRaw } = getStageSize()
     const xAxisFields = staticParams.xAxisFields
     const yAxisFields = staticParams.yAxisFields

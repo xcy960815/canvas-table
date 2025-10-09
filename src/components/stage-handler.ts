@@ -291,8 +291,8 @@ const rebuildHeaderGroup = () => {
 
     // 绘制表头
     drawHeaderPart(headerVars.leftHeaderGroup, columnsInfo.leftColumns)
-    // drawHeaderPart(headerVars.centerHeaderGroup, columnsInfo.centerColumns)
-    // drawHeaderPart(headerVars.rightHeaderGroup, columnsInfo.rightColumns)
+    drawHeaderPart(headerVars.centerHeaderGroup, columnsInfo.centerColumns)
+    drawHeaderPart(headerVars.rightHeaderGroup, columnsInfo.rightColumns)
 }
 
 /**

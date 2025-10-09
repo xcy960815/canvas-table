@@ -71,11 +71,14 @@ const LAYOUT_CONSTANTS = {
      * 过滤图标距离右边缘的距离
      */
     FILTER_ICON_OFFSET: 12,
-    // 列宽调整手柄宽度改为从 props 注入（staticParams.resizerWidth）
     /**
      * 排序箭头大小
      */
     ARROW_SIZE: 8,
+    /**
+     * 排序箭头高度缩放（0-1，值越小越“矮”）
+     */
+    ARROW_HEIGHT_SCALE: 0.72,
     /**
      * 上下箭头间距
      */
@@ -347,9 +350,8 @@ const createColumnResizer = (
     x: number,
     headerGroup: Konva.Group
 ) => {
-    console.log(`${columnOption.columnName}`, x, columnOption.width, columnOption.displayName);
-    console.log(`${columnOption.columnName}`, x + (columnOption.width || 0) + (staticParams.resizerWidth / 2));
-    
+    if (!columnOption.resizable) return
+
     const resizerRect = drawUnifiedRect({
         name: `col-resizer-${columnOption.columnName}`,
         x: x + (columnOption.width || 0) - (staticParams.resizerWidth / 2),
@@ -384,7 +386,9 @@ const createColumnResizer = (
         setPointerStyle(stageVars.stage, true, 'col-resize')
     })
 
+    resizerRect.moveToTop()
 }
+
 /**
  * 创建排序指示器 - 上下两个箭头
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列
@@ -410,15 +414,33 @@ const createSortIcon = (
 
     const centerY = staticParams.headerRowHeight / 2
 
-    // 上箭头（升序）- 指向上方的三角形
-    const upArrowY = centerY - LAYOUT_CONSTANTS.ARROW_GAP / 2 - LAYOUT_CONSTANTS.ARROW_SIZE
+    // 上箭头（升序）- 指向上方的三角形（尖端圆润）
+    const upSize = LAYOUT_CONSTANTS.ARROW_SIZE
+    const upHeightScale = LAYOUT_CONSTANTS.ARROW_HEIGHT_SCALE ?? 1
+    const upEffectiveHeight = upSize * upHeightScale
+    const upArrowY = centerY - LAYOUT_CONSTANTS.ARROW_GAP / 2 - upEffectiveHeight
+    const upBaseLeftX = arrowX
+    const upBaseRightX = arrowX + upSize
+    const upBaseY = upArrowY + upEffectiveHeight
+    const upTipX = arrowX + upSize / 2
+    const upTipY = upArrowY
+    const upRadius = Math.max(1, Math.min(upSize * 0.18, upEffectiveHeight * 0.35))
+    // 从左底边内缩处出发，经左底角的控制点圆润过渡 -> 接近尖端左点 -> 二次贝塞尔到尖端右点 -> 经右底角控制点圆润过渡回到右底边内缩处，闭合
+    const upArrowPath = `M ${upBaseLeftX + upRadius} ${upBaseY} Q ${upBaseLeftX} ${upBaseY} ${upTipX - upRadius} ${upTipY + upRadius} Q ${upTipX} ${upTipY} ${upTipX + upRadius} ${upTipY + upRadius} Q ${upBaseRightX} ${upBaseY} ${upBaseRightX - upRadius} ${upBaseY} Z`
 
-    const upArrowPath = `M ${arrowX} ${upArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE / 2} ${upArrowY} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE} ${upArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} Z`
-
-    // 下箭头（降序）- 指向下方的三角形
+    // 下箭头（降序）- 指向下方的三角形（尖端圆润）
+    const downSize = LAYOUT_CONSTANTS.ARROW_SIZE
+    const downHeightScale = LAYOUT_CONSTANTS.ARROW_HEIGHT_SCALE ?? 1
+    const downEffectiveHeight = downSize * downHeightScale
     const downArrowY = centerY + LAYOUT_CONSTANTS.ARROW_GAP / 2
-
-    const downArrowPath = `M ${arrowX} ${downArrowY} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE / 2} ${downArrowY + LAYOUT_CONSTANTS.ARROW_SIZE} L ${arrowX + LAYOUT_CONSTANTS.ARROW_SIZE} ${downArrowY} Z`
+    const downBaseLeftX = arrowX
+    const downBaseRightX = arrowX + downSize
+    const downBaseY = downArrowY
+    const downTipX = arrowX + downSize / 2
+    const downTipY = downArrowY + downEffectiveHeight
+    const downRadius = Math.max(1, Math.min(downSize * 0.18, downEffectiveHeight * 0.35))
+    // 从左底边内缩处出发，经左底角控制点圆润 -> 接近尖端左点 -> 二次贝塞尔到尖端右点 -> 经右底角控制点回到右底边内缩处，闭合
+    const downArrowPath = `M ${downBaseLeftX + downRadius} ${downBaseY} Q ${downBaseLeftX} ${downBaseY} ${downTipX - downRadius} ${downTipY - downRadius} Q ${downTipX} ${downTipY} ${downTipX + downRadius} ${downTipY - downRadius} Q ${downBaseRightX} ${downBaseY} ${downBaseRightX - downRadius} ${downBaseY} Z`
 
     // 创建上箭头
     const upArrow = new Konva.Path({
@@ -552,6 +574,7 @@ export const drawHeaderPart = (
 
     // 绘制简化的表头
     let x = 0
+    const resizerTasks: Array<() => void> = []
     for (let colIndex = 0; colIndex < headerCols.length; colIndex++) {
         const columnOption = headerCols[colIndex]
         const columnWidth = columnOption.width || 0
@@ -583,9 +606,18 @@ export const drawHeaderPart = (
         // 添加过滤icon
         createFilterIcon(columnOption, x, headerGroup)
 
-        // 添加列宽调整手柄
-        createColumnResizer(columnOption, x, headerGroup)
+        // 只先保存任务，不执行；注意闭包中捕获当前列的 x
+        const currentX = x
+
+        resizerTasks.push(() => createColumnResizer(columnOption, currentX, headerGroup))
 
         x += columnWidth
     }
+    /**
+     * 统一创建手柄
+     */
+    for (const task of resizerTasks) {
+        task()
+    }
+
 }

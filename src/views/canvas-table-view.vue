@@ -104,10 +104,11 @@
       :summary-font-family="tableConfig.summaryFontFamily" :summary-font-size="tableConfig.summaryFontSize"
       :header-background="tableConfig.headerBackground" :summary-background="tableConfig.summaryBackground"
       :body-background-odd="tableConfig.bodyBackgroundOdd" :body-background-even="tableConfig.bodyBackgroundEven"
-      :scrollbar-background="tableConfig.scrollbarBackground" :scrollbar-thumb-background="tableConfig.scrollbarThumbBackground"
-      :scrollbar-thumb-hover-background="tableConfig.scrollbarThumbHoverBackground" :buffer-rows="tableConfig.bufferRows"
-      :min-auto-col-width="tableConfig.minAutoColWidth" :sort-active-color="tableConfig.sortActiveColor"
-      :y-axis-fields="yAxisFields" :data="data"
+      :scrollbar-background="tableConfig.scrollbarBackground"
+      :scrollbar-thumb-background="tableConfig.scrollbarThumbBackground"
+      :scrollbar-thumb-hover-background="tableConfig.scrollbarThumbHoverBackground"
+      :buffer-rows="tableConfig.bufferRows" :min-auto-col-width="tableConfig.minAutoColWidth"
+      :sort-active-color="tableConfig.sortActiveColor" :y-axis-fields="yAxisFields" :data="data"
       :highlight-row-background="tableConfig.highlightRowBackground"
       :highlight-col-background="tableConfig.highlightColBackground" :span-method="spanMethod">
     </CanvasTable>
@@ -130,10 +131,10 @@ const tableConfig = reactive({
   headerTextColor: '#303133',
   headerFontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, Ubuntu, sans-serif',
   headerFontSize: 14,
-  headerBackground: '#fafafa', 
-  bodyTextColor: '#374151', 
-  bodyBackgroundOdd: '#ffffff', 
-  bodyBackgroundEven: '#fafafa', 
+  headerBackground: '#fafafa',
+  bodyTextColor: '#374151',
+  bodyBackgroundOdd: '#ffffff',
+  bodyBackgroundEven: '#fafafa',
   bodyFontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, Ubuntu, sans-serif',
   bodyFontSize: 13,
   summaryFontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, Ubuntu, sans-serif',
@@ -212,7 +213,6 @@ const spanMethod = ({
     return { rowspan: 1, colspan: 1 }
   }
 
-  // 第二列（name列）- 可配置合并行数
   if (colIndex === 1 && spanConfig.secondColSpan > 1) {
     if (rowIndex % spanConfig.secondColSpan === 0) {
       return {
@@ -288,6 +288,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     columnComment: '序号',
     displayName: '序号',
     // width: 100,
+    resizable: true,
     fixed: 'left',
     align: 'left'
   },
@@ -299,7 +300,8 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     // width: 200,
     filterable: true,
     editable: true,
-    editType: 'input'
+    editType: 'input',
+    resizable: true
   },
   {
     columnName: 'name',
@@ -317,7 +319,8 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     displayName: 'age',
     filterable: true,
     editable: true,
-    editType: 'input'
+    editType: 'input',
+    resizable: true
     // fixed: 'left' as const
   },
   {
