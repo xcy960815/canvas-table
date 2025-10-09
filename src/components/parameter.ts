@@ -87,6 +87,10 @@ export const tableProps = {
    */
   headerRowHeight: { type: Number, default: 32 },
   /**
+   * 列宽调整手柄宽度
+   */
+  resizerWidth: { type: Number, default: 4 },
+  /**
    * 表头背景色
    */
   headerBackground: { type: String, default: '#f7f7f9' },
@@ -195,6 +199,7 @@ interface StaticParams {
   highlightRowBackground: string
   highlightColBackground: string
   headerRowHeight: number
+  resizerWidth: number
   headerBackground: string
   headerTextColor: string
   headerFontFamily: string
@@ -240,6 +245,7 @@ export const staticParams: StaticParams = {
   highlightRowBackground: 'rgba(64, 158, 255, 0.1)',
   highlightColBackground: 'rgba(64, 158, 255, 0.08)',
   headerRowHeight: 32,
+  resizerWidth: 4,
   headerBackground: '#f7f7f9',
   headerTextColor: '#303133',
   headerFontFamily: defaultFontFamily,

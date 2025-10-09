@@ -284,14 +284,15 @@ const rebuildHeaderGroup = () => {
     headerVars.leftHeaderGroup = createHeaderLeftGroup(0, 0)
     headerVars.centerHeaderGroup = createHeaderCenterGroup(columnsInfo.leftPartWidth, 0)
     headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - columnsInfo.rightPartWidth - verticalScrollbarWidth, 0)
+    
     headerClipGroup.add(headerVars.centerHeaderGroup)
 
     headerVars.headerLayer.add(headerVars.leftHeaderGroup, headerVars.rightHeaderGroup) // 固定表头必须在表头层，确保不被body层遮挡
 
     // 绘制表头
     drawHeaderPart(headerVars.leftHeaderGroup, columnsInfo.leftColumns)
-    drawHeaderPart(headerVars.centerHeaderGroup, columnsInfo.centerColumns)
-    drawHeaderPart(headerVars.rightHeaderGroup, columnsInfo.rightColumns)
+    // drawHeaderPart(headerVars.centerHeaderGroup, columnsInfo.centerColumns)
+    // drawHeaderPart(headerVars.rightHeaderGroup, columnsInfo.rightColumns)
 }
 
 /**
@@ -445,7 +446,7 @@ export const rebuildGroups = () => {
         return
     }
     
-    // 首先计算列信息（只在需要重建时计算一次）
+    // 首先计算列信息
     calculateColumnsInfo()
     
     rebuildHeaderGroup()

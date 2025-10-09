@@ -71,10 +71,7 @@ const LAYOUT_CONSTANTS = {
      * 过滤图标距离右边缘的距离
      */
     FILTER_ICON_OFFSET: 12,
-    /**
-     * 列宽调整手柄宽度
-     */
-    RESIZER_WIDTH: 4,
+    // 列宽调整手柄宽度改为从 props 注入（staticParams.resizerWidth）
     /**
      * 排序箭头大小
      */
@@ -350,13 +347,14 @@ const createColumnResizer = (
     x: number,
     headerGroup: Konva.Group
 ) => {
-    console.log("createColumnResizer",x,columnOption.displayName);
+    console.log(`${columnOption.columnName}`, x, columnOption.width, columnOption.displayName);
+    console.log(`${columnOption.columnName}`, x + (columnOption.width || 0) + (staticParams.resizerWidth / 2));
     
     const resizerRect = drawUnifiedRect({
         name: `col-resizer-${columnOption.columnName}`,
-        x: x + (columnOption.width || 0) + (LAYOUT_CONSTANTS.RESIZER_WIDTH / 2),
+        x: x + (columnOption.width || 0) - (staticParams.resizerWidth / 2),
         y: 0,
-        width: LAYOUT_CONSTANTS.RESIZER_WIDTH,
+        width: staticParams.resizerWidth,
         height: staticParams.headerRowHeight,
         fill: staticParams.borderColor,
         stroke: 'transparent',
@@ -542,7 +540,7 @@ const handleMultiColumnSort = (
 
 
 /**
- * 绘制表头部分 - 极简版本
+ * 绘制表头部分
  * @param {Konva.Group | null} headerGroup - 表头组
  * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} headerCols - 表头列配置
  */

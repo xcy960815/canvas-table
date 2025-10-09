@@ -40,6 +40,7 @@ watch(props, () => {
   if (props.highlightRowBackground !== undefined) staticParams.highlightRowBackground = props.highlightRowBackground
   if (props.highlightColBackground !== undefined) staticParams.highlightColBackground = props.highlightColBackground
   if (props.headerRowHeight !== undefined) staticParams.headerRowHeight = props.headerRowHeight
+  if (props.resizerWidth !== undefined) staticParams.resizerWidth = props.resizerWidth
   if (props.headerBackground !== undefined) staticParams.headerBackground = props.headerBackground
   if (props.headerTextColor !== undefined) staticParams.headerTextColor = props.headerTextColor
   if (props.headerFontFamily !== undefined) staticParams.headerFontFamily = props.headerFontFamily
