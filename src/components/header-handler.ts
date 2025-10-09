@@ -1,4 +1,4 @@
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
 import Konva from 'konva'
 import { stageVars, clearGroups } from './stage-handler'
 export type Prettify<T> = {
@@ -57,6 +57,13 @@ interface SortColumn {
     order: 'asc' | 'desc'
 }
 
+interface FilterItem {
+    /** 列名 */
+    columnName: string
+    /** 选中的离散值集合 */
+    values: Set<string>
+}
+
 
 const LAYOUT_CONSTANTS = {
     /**
@@ -104,9 +111,9 @@ const COLORS = {
 let originalData: Array<ChartDataVo.ChartData> = []
 
 /**
- * 过滤状态：列名 -> 选中的离散值集合 - 单独的响应式变量
- */
-const filterState = reactive<Record<string, Set<string>>>({})
+* 过滤状态（数组模型）：支持多列过滤；同列内为 OR，多列之间为 AND
+*/
+export const filterColumns = ref<FilterItem[]>([])
 
 /**
  * 排序状态 - 单独的响应式变量
@@ -205,17 +212,18 @@ export const handleTableData = () => {
     // 开始处理数据
     let processedData = [...originalData]
 
-    // 应用过滤
-    const filterKeys = Object.keys(filterState).filter((k) => filterState[k] && filterState[k].size > 0)
-    if (filterKeys.length) {
-        processedData = processedData.filter((row) => {
-            for (const k of filterKeys) {
-                const set = filterState[k]
-                const val = row[k]
-                if (!set.has(String(val ?? ''))) return false
-            }
-            return true
-        })
+    // 应用过滤（AND across columns, OR within column values）
+    if (filterColumns.value.length) {
+        const activeFilters = filterColumns.value.filter((f) => f.values && f.values.size > 0)
+        if (activeFilters.length) {
+            processedData = processedData.filter((row) => {
+                for (const f of activeFilters) {
+                    const val = row[f.columnName]
+                    if (!f.values.has(String(val ?? ''))) return false
+                }
+                return true
+            })
+        }
     }
 
     // 应用排序
@@ -268,16 +276,17 @@ const getColumnSortOrder = (columnName: string): 'asc' | 'desc' | null => {
  * @param {Konva.Group} headerGroup - 表头组
  */
 const createFilterIcon = (
-    col: GroupStore.GroupOption | DimensionStore.DimensionOption,
+    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     x: number,
     headerGroup: Konva.Group
 ) => {
     // 检查列是否可过滤
-    if (!col.filterable) return
+    if (!columnOption.filterable) return
 
-    const hasFilter = !!(filterState[col.columnName] && filterState[col.columnName].size > 0)
-    const filterColor = hasFilter ? staticParams.sortActiveColor : COLORS.INACTIVE
-    const filterX = x + (col.width || 0) - LAYOUT_CONSTANTS.FILTER_ICON_OFFSET
+    const filterItem = filterColumns.value.find((f) => f.columnName === columnOption.columnName)
+    const isFilter = !!(filterItem && filterItem.values.size > 0)
+    const filterColor = isFilter ? staticParams.sortActiveColor : COLORS.INACTIVE
+    const filterX = x + (columnOption.width || 0) - LAYOUT_CONSTANTS.FILTER_ICON_OFFSET
     const centerY = staticParams.headerRowHeight / 2
     const iconSize = LAYOUT_CONSTANTS.FILTER_ICON_SIZE
 
@@ -287,7 +296,7 @@ const createFilterIcon = (
         width: iconSize,
         height: iconSize,
         listening: true,
-        name: `filter-icon-${col.columnName}`,
+        name: `filter-icon-${columnOption.columnName}`,
         sceneFunc: (context: Konva.Context, shape: Konva.Shape) => {
             context.beginPath()
             // 优化后的漏斗形状 - 更加圆润和对称
@@ -295,13 +304,18 @@ const createFilterIcon = (
             const topWidth = iconSize - padding * 2
             const bottomWidth = topWidth * 0.4
             const neckHeight = iconSize * 0.6
+                const cornerRadius = Math.max(1, Math.min(3, iconSize * 0.12))
 
-            // 顶部边缘
-            context.moveTo(padding, padding + 1)
-            context.lineTo(padding + topWidth, padding + 1)
-
-            // 右侧斜边（带圆角过渡）
-            context.lineTo(padding + topWidth * 0.7, neckHeight)
+                // 顶部边缘（左右上角圆润）
+                context.moveTo(padding + cornerRadius, padding + 1)
+                context.lineTo(padding + topWidth - cornerRadius, padding + 1)
+                // 右上角圆角过渡到右侧斜边
+                context.quadraticCurveTo(
+                    padding + topWidth,
+                    padding + 1,
+                    padding + topWidth * 0.7,
+                    neckHeight
+                )
 
             // 底部柱状部分（右侧）
             context.lineTo(padding + topWidth * 0.7, iconSize - padding)
@@ -309,16 +323,21 @@ const createFilterIcon = (
 
             // 底部柱状部分（左侧）
             context.lineTo(padding + topWidth * 0.3, neckHeight)
-
-            // 左侧斜边
-            context.closePath()
+                // 左上角圆角过渡回顶部边缘
+                context.quadraticCurveTo(
+                    padding,
+                    padding + 1,
+                    padding + cornerRadius,
+                    padding + 1
+                )
+                context.closePath()
 
             context.fillStrokeShape(shape)
         },
         stroke: filterColor,
         strokeWidth: 1.5,
-        fill: hasFilter ? filterColor : 'transparent',
-        opacity: hasFilter ? 1 : 0.6
+        fill: isFilter ? filterColor : 'transparent',
+        opacity: isFilter ? 1 : 0.6
     })
 
     // 添加鼠标交互
@@ -327,10 +346,10 @@ const createFilterIcon = (
 
     filterIcon.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
         const uniqueValues = new Set<string>()
-        tableData.value.forEach((row) => uniqueValues.add(String(row[col.columnName] ?? '')))
+        tableData.value.forEach((row) => uniqueValues.add(String(row[columnOption.columnName] ?? '')))
 
         const availableOptions = Array.from(uniqueValues)
-        const currentSelection = filterState[col.columnName] ? Array.from(filterState[col.columnName]!) : []
+        const currentSelection = filterItem ? Array.from(filterItem.values) : []
         const allOptions = Array.from(new Set([...availableOptions, ...currentSelection]))
 
         // openFilterDropdown(evt, col.columnName, allOptions, currentSelection)
@@ -484,7 +503,6 @@ const handleSortAction = (
 ) => {
     const currentIndex = sortColumns.value.findIndex((s) => s.columnName === columnOption.columnName)
     handleMultiColumnSort(columnOption, order, currentIndex)
-
     handleTableData()
     clearGroups()
 }
@@ -620,4 +638,48 @@ export const drawHeaderPart = (
         task()
     }
 
+}
+
+/**
+ * 设置/替换某列的过滤集合
+ * @param columnName 列名
+ * @param values 选中的值集合（可迭代）
+ */
+export const setFilter = (columnName: string, values: Iterable<string>) => {
+    const newSet = new Set<string>(Array.from(values).map((v) => String(v)))
+    const idx = filterColumns.value.findIndex((f) => f.columnName === columnName)
+    if (idx === -1) {
+        filterColumns.value = [...filterColumns.value, { columnName, values: newSet }]
+    } else {
+        const next = [...filterColumns.value]
+        next[idx] = { columnName, values: newSet }
+        filterColumns.value = next
+    }
+    handleTableData()
+    clearGroups()
+}
+
+/**
+ * 清除某列过滤
+ */
+export const clearFilter = (columnName: string) => {
+    const idx = filterColumns.value.findIndex((f) => f.columnName === columnName)
+    if (idx !== -1) {
+        const next = [...filterColumns.value]
+        next.splice(idx, 1)
+        filterColumns.value = next
+        handleTableData()
+        clearGroups()
+    }
+}
+
+/**
+ * 清除全部过滤
+ */
+export const clearAllFilters = () => {
+    if (filterColumns.value.length) {
+        filterColumns.value = []
+        handleTableData()
+        clearGroups()
+    }
 }
