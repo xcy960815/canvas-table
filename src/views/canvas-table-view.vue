@@ -387,6 +387,7 @@ const yAxisFields = ref<DimensionStore.DimensionOption[]>([
     displayName: 'zipcode',
     width: 200,
     filterable: true,
+    resizable:true,
     editable: true,
     editType: 'input'
     // fixed: 'right' as const

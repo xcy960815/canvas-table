@@ -249,15 +249,19 @@ export const refreshTable = (resetScroll: boolean) => {
     if (resetScroll) {
         scrollbarVars.stageScrollX = 0
         scrollbarVars.stageScrollY = 0
-    } else {
+    }
+    
+    clearGroups()
+    rebuildGroups()
+    
+    // 重建后，如果不重置滚动位置，需要约束到新的有效范围并更新位置
+    if (!resetScroll) {
         const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
         scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX, 0, maxHorizontalScroll)
         scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY, 0, maxVerticalScroll)
         console.log('refreshTable', scrollbarVars.stageScrollX, scrollbarVars.stageScrollY);
-        
+        updateScrollPositions()
     }
-    clearGroups()
-    rebuildGroups()
 }
 
 /**

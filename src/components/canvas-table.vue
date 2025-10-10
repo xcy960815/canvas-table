@@ -5,7 +5,7 @@
 import { tableProps, staticParams } from './parameter';
 import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { stageVars, initStage, destroyStage, initStageListeners, cleanupStageListeners } from './stage-handler';
-import { sortColumns, handleTableData } from './header-handler';
+import { sortColumns, handleTableData } from './data-handler';
 import { initWheelListener,cleanupWheelListener } from './scrollbar-handler';
 import { refreshTable } from './stage-handler';
 
