@@ -1,4 +1,11 @@
 import Konva from 'konva'
+
+/**
+ * 通用类型工具：美化类型显示
+ */
+export type Prettify<T> = {
+    [K in keyof T]: T[K]
+} & {}
 /**
  * 对象池 属性
  */

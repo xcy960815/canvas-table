@@ -1,12 +1,8 @@
 import { ref } from 'vue'
 import Konva from 'konva'
 import { stageVars, clearGroups } from './stage-handler'
-export type Prettify<T> = {
-    [K in keyof T]: T[K]
-} & {}
-
 import { staticParams, tableData } from './parameter'
-
+import { filterColumns, sortColumns, handleTableData, getColumnSortStatus, handleMultiColumnSort } from './data-handler'
 import {
     truncateText,
     setPointerStyle,
@@ -14,6 +10,7 @@ import {
     drawUnifiedRect,
     drawUnifiedText,
 } from './utils'
+
 
 interface HeaderVars {
     headerLayer: Konva.Layer | null,
@@ -46,23 +43,6 @@ interface HeaderVars {
     resizeIndicatorLine: Konva.Line | null
 }
 
-interface SortColumn {
-    /**
-     * 列名
-     */
-    columnName: string
-    /**
-     * 排序方向
-     */
-    order: 'asc' | 'desc'
-}
-
-interface FilterItem {
-    /** 列名 */
-    columnName: string
-    /** 选中的离散值集合 */
-    values: Set<string>
-}
 
 
 const LAYOUT_CONSTANTS = {
@@ -105,15 +85,6 @@ const COLORS = {
 } as const
 
 
-/**
- * 原始数据存储 - 不被排序或过滤修改
- */
-let originalData: Array<ChartDataVo.ChartData> = []
-
-/**
-* 过滤状态（数组模型）：支持多列过滤；同列内为 OR，多列之间为 AND
-*/
-export const filterColumns = ref<FilterItem[]>([])
 
 /**
  * 排序状态 - 单独的响应式变量
@@ -161,10 +132,6 @@ export const headerVars: HeaderVars = {
     resizeIndicatorLine: null
 }
 
-/**
- * 排序列
- */
-export const sortColumns = ref<SortColumn[]>([])
 
 /**
  * 创建表头左侧组
@@ -200,70 +167,7 @@ export const createHeaderRightGroup = (x: number, y: number) => createGroup('hea
 export const createHeaderClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('header', 'center', x, y, { x, y, width, height })
 
 
-/**
- * 处理表格数据
- * @param {Array<ChartDataVo.ChartData>} data - 表格数据
- * @returns {void}
- */
-export const handleTableData = () => {
-    // 保存原始数据
-    originalData = staticParams.data.filter((row) => row && typeof row === 'object')
 
-    // 开始处理数据
-    let processedData = [...originalData]
-
-    // 应用过滤（AND across columns, OR within column values）
-    if (filterColumns.value.length) {
-        const activeFilters = filterColumns.value.filter((f) => f.values && f.values.size > 0)
-        if (activeFilters.length) {
-            processedData = processedData.filter((row) => {
-                for (const f of activeFilters) {
-                    const val = row[f.columnName]
-                    if (!f.values.has(String(val ?? ''))) return false
-                }
-                return true
-            })
-        }
-    }
-
-    // 应用排序
-    if (sortColumns.value.length) {
-        const toNum = (v: string | number | null | undefined) => {
-            const n = Number(v)
-            return Number.isFinite(n) ? n : null
-        }
-        const getVal = (row: ChartDataVo.ChartData, key: string): string | number | undefined => {
-            const val = row[key]
-            if (typeof val === 'string' || typeof val === 'number') return val
-            return undefined
-        }
-        processedData.sort((a, b) => {
-            for (const s of sortColumns.value) {
-                const key = s.columnName
-                const av = getVal(a, key)
-                const bv = getVal(b, key)
-                const an = toNum(av)
-                const bn = toNum(bv)
-                let cmp = 0
-                if (an !== null && bn !== null) cmp = an - bn
-                else cmp = String(av ?? '').localeCompare(String(bv ?? ''))
-                if (cmp !== 0) return s.order === 'asc' ? cmp : -cmp
-            }
-            return 0
-        })
-    }
-    tableData.value = processedData
-}
-
-/**
- * 获取列的排序状态
- * @param {string} columnName - 列名
- * @returns {'asc' | 'desc' | null} 排序状态
- */
-const getColumnSortOrder = (columnName: string): 'asc' | 'desc' | null => {
-    const sortColumn = sortColumns.value.find(col => col.columnName === columnName)
-    return sortColumn ? sortColumn.order : null
-}
 
 
 /**
@@ -426,7 +330,7 @@ const createSortIcon = (
     // 检查列是否可排序
     if (!columnOption.sortable) return
 
-    const sortOrder = getColumnSortOrder(columnOption.columnName)
+    const sortOrder = getColumnSortStatus(columnOption.columnName)
 
     // 箭头的基础位置
     const arrowX = x + (columnOption.width || 0) - LAYOUT_CONSTANTS.SORT_ARROW_OFFSET
@@ -520,7 +424,7 @@ const createHeaderCellText = (
     x: number,
     headerGroup: Konva.Group
 ) => {
-    const sortOrder = getColumnSortOrder(columnOption.columnName)
+    const sortOrder = getColumnSortStatus(columnOption.columnName)
     const hasSort = sortOrder !== null
 
     // 如果有排序，给文本留出箭头空间
@@ -550,32 +454,6 @@ const createHeaderCellText = (
 }
 
 
-/**
- * 多列排序处理
- * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
- * @param {'asc' | 'desc'} order - 排序方向
- * @param {number} currentIndex - 当前索引
- */
-const handleMultiColumnSort = (
-    columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
-    order: 'asc' | 'desc',
-) => {
-    const currentIndex = sortColumns.value.findIndex((s) => s.columnName === columnOption.columnName)
-    if (currentIndex === -1) {
-        // 添加新的排序列
-        sortColumns.value = [...sortColumns.value, { columnName: columnOption.columnName, order }]
-    } else {
-        const newSortColumns = [...sortColumns.value]
-        if (newSortColumns[currentIndex].order === order) {
-            // 移除该列的排序
-            newSortColumns.splice(currentIndex, 1)
-        } else {
-            // 切换排序方向
-            newSortColumns[currentIndex] = { columnName: columnOption.columnName, order }
-        }
-        sortColumns.value = newSortColumns
-    }
-}
 
 
 /**
