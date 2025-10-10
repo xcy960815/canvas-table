@@ -13,16 +13,16 @@ import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, 
  */
 const updateResizeIndicator = () => {
     if (!headerVars.isResizingColumn || !headerVars.resizingColumnName) return
-    
+
     const { height: stageHeight, width: stageWidth } = getStageSize()
-    
+
     // 找到目标列并确定其所在分区
     const targetColumnInLeft = columnsInfo.leftColumns.find(c => c.columnName === headerVars.resizingColumnName)
     const targetColumnInCenter = columnsInfo.centerColumns.find(c => c.columnName === headerVars.resizingColumnName)
     const targetColumnInRight = columnsInfo.rightColumns.find(c => c.columnName === headerVars.resizingColumnName)
-    
+
     let indicatorX = 0
-    
+
     if (targetColumnInLeft) {
         // 左固定列：从0开始累加
         for (const col of columnsInfo.leftColumns) {
@@ -56,7 +56,7 @@ const updateResizeIndicator = () => {
     } else {
         return // 未找到目标列
     }
-    
+
     // 创建或更新指示线
     if (!headerVars.resizeIndicatorLine) {
         headerVars.resizeIndicatorLine = new Konva.Line({
@@ -70,7 +70,7 @@ const updateResizeIndicator = () => {
     } else {
         headerVars.resizeIndicatorLine.points([indicatorX, 0, indicatorX, stageHeight])
     }
-    
+
     headerVars.headerLayer?.batchDraw()
 }
 
@@ -253,13 +253,11 @@ export const refreshTable = (resetScroll: boolean) => {
         const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
         scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX, 0, maxHorizontalScroll)
         scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY, 0, maxVerticalScroll)
+        console.log('refreshTable', scrollbarVars.stageScrollX, scrollbarVars.stageScrollY);
+        
     }
     clearGroups()
     rebuildGroups()
-    // 应用保存的滚动位置
-    if (!resetScroll) {
-        updateScrollPositions()
-    }
 }
 
 /**
@@ -284,7 +282,7 @@ const rebuildHeaderGroup = () => {
     headerVars.leftHeaderGroup = createHeaderLeftGroup(0, 0)
     headerVars.centerHeaderGroup = createHeaderCenterGroup(columnsInfo.leftPartWidth, 0)
     headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - columnsInfo.rightPartWidth - verticalScrollbarWidth, 0)
-    
+
     headerClipGroup.add(headerVars.centerHeaderGroup)
 
     headerVars.headerLayer.add(headerVars.leftHeaderGroup, headerVars.rightHeaderGroup) // 固定表头必须在表头层，确保不被body层遮挡
@@ -409,9 +407,7 @@ const rebuildSummaryGroup = () => {
  */
 const rebuildVerticalScrollbarGroup = () => {
     if (!scrollbarVars.scrollbarLayer) return
-
     const { maxVerticalScroll } = calculateScrollRange()
-
     if (maxVerticalScroll > 0) {
         scrollbarVars.verticalScrollbarGroup = createVerticalScrollbarGroup()
         scrollbarVars.scrollbarLayer.add(scrollbarVars.verticalScrollbarGroup)
@@ -440,34 +436,19 @@ const rebuildHorizontalScrollbarGroup = () => {
  * @returns {void}
  */
 export const rebuildGroups = () => {
-    if (
-        !stageVars.stage
-    ) {
-        return
-    }
-    
+    if (!stageVars.stage) return
+
     // 首先计算列信息
     calculateColumnsInfo()
-    
+
     rebuildHeaderGroup()
     rebuildBodyGroup()
     rebuildSummaryGroup()
     rebuildVerticalScrollbarGroup()
     rebuildHorizontalScrollbarGroup()
 
-    // 主体相关
-    bodyVars.bodyLayer?.batchDraw() // 1. 先绘制可滚动的中间内容
-
-    bodyVars.fixedBodyLayer?.batchDraw() // 2. 再绘制固定列（覆盖在上面）
-
-    // 表头相关
-    headerVars.headerLayer?.batchDraw() // 3. 表头在最上层
-
-    // 汇总相关
-    summaryVars.summaryLayer?.batchDraw() // 4. 汇总层（像header一样统一管理）
-
-    // 滚动条相关
-    scrollbarVars.scrollbarLayer?.batchDraw() // 5. 滚动条在最顶层
+    // 批量绘制所有层 - 按正确的渲染顺序
+    scheduleLayersBatchDraw(['body', 'fixed', 'header', 'summary', 'scrollbar'])
 }
 
 
@@ -540,13 +521,11 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     // 列宽调整处理 - 直接更新指示线位置
     if (headerVars.isResizingColumn) {
         const deltaX = mouseEvent.clientX - headerVars.resizeStartX
-        const newWidth = Math.max(50, headerVars.resizeStartWidth + deltaX) // 最小宽度 50px
-        
-        headerVars.resizeTempWidth = newWidth
-        updateResizeIndicator() // 直接调用，浏览器会自动优化重绘频率
+        headerVars.resizeTempWidth = headerVars.resizeStartWidth + deltaX
+        updateResizeIndicator()
         return
     }
-    
+
 }
 
 /**
@@ -555,7 +534,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
  */
 export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
     if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
-    
+
     // 垂直滚动条拖拽结束
     if (scrollbarVars.isDraggingVerticalThumb) {
         scrollbarVars.isDraggingVerticalThumb = false
@@ -563,9 +542,9 @@ export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
         if (scrollbarVars.verticalScrollbarThumb) {
             scrollbarVars.verticalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
         }
-        scrollbarVars.scrollbarLayer?.batchDraw()
+        scheduleLayersBatchDraw(['scrollbar'])
     }
-    
+
     // 横向滚动条拖拽结束
     if (scrollbarVars.isDraggingHorizontalThumb) {
         scrollbarVars.isDraggingHorizontalThumb = false
@@ -573,28 +552,28 @@ export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
         if (scrollbarVars.horizontalScrollbarThumb) {
             scrollbarVars.horizontalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
         }
-        scrollbarVars.scrollbarLayer?.batchDraw()
+        scheduleLayersBatchDraw(['scrollbar'])
     }
-    
+
     // 列宽调整结束 - 应用最终宽度
     if (headerVars.isResizingColumn) {
         // 应用最终宽度
         const allFields = [...staticParams.xAxisFields, ...staticParams.yAxisFields]
         const targetField = allFields.find(f => f.columnName === headerVars.resizingColumnName)
-        
+
         if (targetField && headerVars.resizeTempWidth > 0) {
             targetField.width = headerVars.resizeTempWidth
             // 刷新表格，保持滚动位置
             refreshTable(false)
         }
-        
+
         // 清理调整指示线
         if (headerVars.resizeIndicatorLine) {
             headerVars.resizeIndicatorLine.destroy()
             headerVars.resizeIndicatorLine = null
             headerVars.headerLayer?.batchDraw()
         }
-        
+
         // 重置状态
         headerVars.isResizingColumn = false
         headerVars.resizingColumnName = null
@@ -634,4 +613,36 @@ export const cleanupStageListeners = () => {
     // 清理鼠标移动监听
     window.removeEventListener('mousemove', handleGlobalMouseMove)
     window.removeEventListener('mouseup', handleGlobalMouseUp)
+}
+
+/**
+ * 修复的Layer批量绘制 - 5个真实的Layer，确保表头和汇总固定
+ * @param {Array<'header' | 'body' | 'fixed' | 'scrollbar' | 'summary'>} layers - 要绘制的层
+ */
+export const scheduleLayersBatchDraw = (layers: Array<'header' | 'body' | 'fixed' | 'scrollbar' | 'summary'> = ['body']) => {
+    layers.forEach((layerType) => {
+        switch (layerType) {
+            // 表头相关
+            case 'header':
+                headerVars.headerLayer?.batchDraw()
+                break
+            // 主体相关
+            case 'body':
+                bodyVars.bodyLayer?.batchDraw()
+                break
+            case 'fixed':
+                bodyVars.fixedBodyLayer?.batchDraw()
+                break
+
+            // 汇总相关
+            case 'summary':
+                summaryVars.summaryLayer?.batchDraw()
+                break
+
+            // 滚动条相关
+            case 'scrollbar':
+                scrollbarVars.scrollbarLayer?.batchDraw()
+                break
+        }
+    })
 }

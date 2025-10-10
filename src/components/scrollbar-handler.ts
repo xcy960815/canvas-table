@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { stageVars, getStageSize } from "./stage-handler";
+import { stageVars, getStageSize, scheduleLayersBatchDraw } from "./stage-handler";
 import { staticParams, tableData } from "./parameter";
 import { headerVars } from "./header-handler";
 import { bodyVars, calculateVisibleRows, columnsInfo, drawBodyPart } from "./body-handler";
@@ -13,25 +13,64 @@ import {
 } from './utils'
 
 interface ScrollbarVars {
+    /**
+     * 滚动条层（滚动条）
+     */
     scrollbarLayer: Konva.Layer | null,
+    /**
+     * 垂直滚动条组
+     */
     verticalScrollbarGroup: Konva.Group | null,
+    /**
+     * 水平滚动条组
+     */
     horizontalScrollbarGroup: Konva.Group | null,
+    /**
+     * 垂直滚动条滑块
+     */
     verticalScrollbarThumb: Konva.Rect | null,
+    /**
+     * 水平滚动条滑块
+     */
     horizontalScrollbarThumb: Konva.Rect | null,
+    /**
+     * 是否正在垂直拖动滚动条
+     */
     isDraggingVerticalThumb: boolean
+    /**
+     * 是否正在水平拖动滚动条
+     */
     isDraggingHorizontalThumb: boolean
+    /**
+     * 垂直滚动条拖拽起始 Y 坐标
+     */
     dragStartY: number
+    /**
+     * 水平滚动条拖拽起始 X 坐标
+     */
     dragStartX: number
+    /**
+     * 垂直滚动条拖拽起始滚动位置 Y
+     */
     stageScrollY: number
+    /**
+     * 水平滚动条拖拽起始滚动位置 X
+     */
     stageScrollX: number
+    /**
+     * 垂直滚动条拖拽起始滚动位置 Y
+     */
     dragStartScrollY: number
+    /**
+     * 水平滚动条拖拽起始滚动位置 X
+     */
     dragStartScrollX: number
 }
 
 export const scrollbarVars: ScrollbarVars = {
     /**
-   * 滚动条层（滚动条）
-   */
+     * 滚动条层（滚动条）
+     */
     scrollbarLayer: null,
 
     /**
@@ -100,17 +139,13 @@ export const scrollbarVars: ScrollbarVars = {
  * 创建垂直滚动条组
  * @returns {Konva.Group} 垂直滚动条组
  */
-export const createVerticalScrollbarGroup = (): Konva.Group => {
-    return createGroup('scrollbar', 'vertical')
-}
+export const createVerticalScrollbarGroup = (): Konva.Group => createGroup('scrollbar', 'vertical')
 
 /**
  * 创建水平滚动条组
  * @returns {Konva.Group} 水平滚动条组
  */
-export const createHorizontalScrollbarGroup = (): Konva.Group => {
-    return createGroup('scrollbar', 'horizontal')
-}
+export const createHorizontalScrollbarGroup = (): Konva.Group => createGroup('scrollbar', 'horizontal')
 
 /**
  * 计算滚动范围
@@ -142,38 +177,6 @@ export const calculateScrollRange = () => {
     return { maxHorizontalScroll, maxVerticalScroll }
 }
 
-/**
- * 修复的Layer批量绘制 - 5个真实的Layer，确保表头和汇总固定
- * @param {Array<'header' | 'body' | 'fixed' | 'scrollbar' | 'summary'>} layers - 要绘制的层
- */
-export const scheduleLayersBatchDraw = (layers: Array<'header' | 'body' | 'fixed' | 'scrollbar' | 'summary'> = ['body']) => {
-    layers.forEach((layerType) => {
-        switch (layerType) {
-            // 表头相关
-            case 'header':
-                headerVars.headerLayer?.batchDraw() // 表头层（固定不滚动）
-                break
-
-            // 主体相关
-            case 'body':
-                bodyVars.bodyLayer?.batchDraw() // 主体内容层（可滚动）
-                break
-            case 'fixed':
-                bodyVars.fixedBodyLayer?.batchDraw() // 固定列层（左右固定）
-                break
-
-            // 汇总相关
-            case 'summary':
-                summaryVars.summaryLayer?.batchDraw() // 汇总行层（底部固定）
-                break
-
-            // 滚动条相关
-            case 'scrollbar':
-                scrollbarVars.scrollbarLayer?.batchDraw() // 滚动条层
-                break
-        }
-    })
-}
 
 /**
  * 更新滚动位置
@@ -181,55 +184,58 @@ export const scheduleLayersBatchDraw = (layers: Array<'header' | 'body' | 'fixed
  */
 export const updateScrollPositions = () => {
     if (
+        !stageVars.stage ||
         !bodyVars.leftBodyGroup ||
         !bodyVars.centerBodyGroup ||
         !bodyVars.rightBodyGroup ||
         !headerVars.centerHeaderGroup
-    )
-        return
+    ) return
+
+    // 预计算常用值
+    const scrollY = -scrollbarVars.stageScrollY
     const centerX = -scrollbarVars.stageScrollX
     const headerX = columnsInfo.leftPartWidth - scrollbarVars.stageScrollX
 
-    // 主体相关 - 更新滚动位置
-    /**
-     * 更新左侧和右侧主体（只有 Y 位置变化）
-     * 注意：由于左右body组现在在裁剪组中，Y位置应该相对于裁剪组
-     * @returns {void}
-     */
-    bodyVars.leftBodyGroup.y(-scrollbarVars.stageScrollY)
-    bodyVars.rightBodyGroup.y(-scrollbarVars.stageScrollY)
-
-    /**
-     * 更新中间主体（X 和 Y 位置变化）
-     * @returns {void}
-     */
-    bodyVars.centerBodyGroup.x(centerX)
-    bodyVars.centerBodyGroup.y(-scrollbarVars.stageScrollY)
-
-    /**
-     * 更新中心表头（只有 X 位置变化）
-     * @returns {void}
-     */
+    // 批量更新位置 - 减少函数调用
+    bodyVars.leftBodyGroup.y(scrollY)
+    bodyVars.rightBodyGroup.y(scrollY)
+    bodyVars.centerBodyGroup.setAttrs({ x: centerX, y: scrollY })
     headerVars.centerHeaderGroup.x(headerX)
 
-    /**
-     * 更新汇总组位置（完全参考表头的实现方式）
-     * 左右汇总组：固定位置，不滚动
-     * 中间汇总组：在裁剪组中，只需要更新x位置跟随滚动
-     * @returns {void}
-     */
+    // 更新汇总组位置
     if (summaryVars.centerSummaryGroup) {
-        // 中间汇总组：在裁剪组中，需要跟随水平滚动（与中间表头一致）
-        summaryVars.centerSummaryGroup.x(headerX)
-        summaryVars.centerSummaryGroup.y(0) // 相对于裁剪组
+        summaryVars.centerSummaryGroup.setAttrs({ x: headerX, y: 0 })
     }
 
-    updateScrollbarPosition()
+    // 滚动条更新 - 只在必要时计算
+    const { width: stageWidth, height: stageHeight } = getStageSize()
+    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
-    // 水平滚动时也需要重绘固定层
+    // 批量更新滚动条位置
+    let needsScrollbarRedraw = false
+
+    if (scrollbarVars.verticalScrollbarThumb && maxVerticalScroll > 0) {
+        const trackHeight = stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight -
+            (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
+        const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
+        const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
+
+        scrollbarVars.verticalScrollbarThumb.y(thumbY)
+        needsScrollbarRedraw = true
+    }
+
+    if (scrollbarVars.horizontalScrollbarThumb && maxHorizontalScroll > 0) {
+        const visibleWidth = stageWidth - columnsInfo.leftPartWidth - columnsInfo.rightPartWidth -
+            (maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0)
+        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / columnsInfo.centerPartWidth)
+        const thumbX = columnsInfo.leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
+
+        scrollbarVars.horizontalScrollbarThumb.x(thumbX)
+        needsScrollbarRedraw = true
+    }
+
+    // 批量重绘所有相关层（包含滚动条）
     scheduleLayersBatchDraw(['header', 'body', 'fixed', 'scrollbar', 'summary'])
-    // updateFilterDropdownPositionsInTable()
-    // updateSummaryDropdownPositionsInTable()
 }
 
 /**
@@ -248,13 +254,23 @@ export const updateHorizontalScroll = (offsetX: number) => {
     bodyVars.centerBodyGroup?.x(centerX)
     summaryVars.centerSummaryGroup?.x(headerX) // 修复：汇总行应该和表头使用相同的X坐标（headerX）
 
-    updateScrollbarPosition()
+    /* 更新滚动条位置 */
+    if (stageVars.stage) {
+        const { width: stageWidth, height: stageHeight } = getStageSize()
+        const { maxHorizontalScroll: maxHScroll, maxVerticalScroll } = calculateScrollRange()
+
+        // 更新水平滚动条位置
+        if (scrollbarVars.horizontalScrollbarThumb && maxHScroll > 0) {
+            const visibleWidth = stageWidth - columnsInfo.leftPartWidth - columnsInfo.rightPartWidth - (maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0)
+            const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / columnsInfo.centerPartWidth)
+            const thumbX = columnsInfo.leftPartWidth + (scrollbarVars.stageScrollX / maxHScroll) * (visibleWidth - thumbWidth)
+            scrollbarVars.horizontalScrollbarThumb.x(thumbX)
+        }
+
+    }
 
     // 水平滚动需要更新表头、主体、固定列和汇总行
     scheduleLayersBatchDraw(['header', 'body', 'fixed', 'scrollbar', 'summary'])
-    // updateCellEditorPositionsInTable()
-    // updateFilterDropdownPositionsInTable()
-    // updateSummaryDropdownPositionsInTable()
 }
 
 
@@ -266,7 +282,7 @@ export const updateVerticalScroll = (offsetY: number) => {
     if (!stageVars.stage || !bodyVars.leftBodyGroup || !bodyVars.centerBodyGroup || !bodyVars.rightBodyGroup) return
 
     const actualOffsetY = offsetY
-    
+
     const { maxVerticalScroll } = calculateScrollRange()
 
     scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxVerticalScroll)
@@ -305,10 +321,26 @@ export const updateVerticalScroll = (offsetY: number) => {
     bodyVars.leftBodyGroup.y(fixedColumnsY)
     bodyVars.rightBodyGroup?.y(fixedColumnsY)
     bodyVars.centerBodyGroup.y(centerY)
-    updateScrollbarPosition()
-    // updateCellEditorPositionsInTable()
+
+    /* 更新滚动条位置 */
+    if (stageVars.stage) {
+        const { width: stageWidth, height: stageHeight } = getStageSize()
+        const { maxHorizontalScroll, maxVerticalScroll: maxVScroll } = calculateScrollRange()
+
+        // 更新垂直滚动条位置
+        if (scrollbarVars.verticalScrollbarThumb && maxVScroll > 0) {
+            const trackHeight =
+                stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
+            const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
+            const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVScroll) * (trackHeight - thumbHeight)
+            scrollbarVars.verticalScrollbarThumb.y(thumbY)
+        }
+
+    }
     scheduleLayersBatchDraw(['body', 'fixed', 'scrollbar', 'summary'])
 }
+
+
 /**
  * 设置垂直滚动条事件
  * @returns {void}
@@ -346,42 +378,13 @@ const setupVerticalScrollbarEvents = () => {
     }
 }
 
-/**
- * 更新滚动条位置
- * @returns {void}
- */
-export const updateScrollbarPosition = () => {
-    if (!stageVars.stage) return
-
-    const { width: stageWidth, height: stageHeight } = getStageSize()
-    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
-
-    // 更新垂直滚动条位置
-    if (scrollbarVars.verticalScrollbarThumb && maxVerticalScroll > 0) {
-        const trackHeight =
-            stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
-        const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
-        const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
-        scrollbarVars.verticalScrollbarThumb.y(thumbY)
-    }
-
-    // 更新水平滚动条位置
-    if (scrollbarVars.horizontalScrollbarThumb && maxHorizontalScroll > 0) {
-        const visibleWidth = stageWidth - columnsInfo.leftPartWidth - columnsInfo.rightPartWidth - (maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0)
-        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / columnsInfo.centerPartWidth)
-        const thumbX = columnsInfo.leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
-        scrollbarVars.horizontalScrollbarThumb.x(thumbX)
-    }
-
-    scrollbarVars.scrollbarLayer?.batchDraw()
-}
 
 /**
  * 创建垂直滚动条
  * @returns {void}
  */
 export const drawVerticalScrollbarPart = () => {
-    
+
     if (!stageVars.stage || !scrollbarVars.scrollbarLayer) return
 
     const { width: stageWidth, height: stageHeight } = getStageSize()
@@ -457,7 +460,6 @@ export const drawVerticalScrollbarPart = () => {
     // 设置垂直滚动条事件
     setupVerticalScrollbarEvents()
 }
-
 
 /**
  * 设置水平滚动条事件

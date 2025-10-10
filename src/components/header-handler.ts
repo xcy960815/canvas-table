@@ -501,8 +501,7 @@ const handleSortAction = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     order: 'asc' | 'desc'
 ) => {
-    const currentIndex = sortColumns.value.findIndex((s) => s.columnName === columnOption.columnName)
-    handleMultiColumnSort(columnOption, order, currentIndex)
+    handleMultiColumnSort(columnOption, order)
     handleTableData()
     clearGroups()
 }
@@ -560,8 +559,8 @@ const createHeaderCellText = (
 const handleMultiColumnSort = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     order: 'asc' | 'desc',
-    currentIndex: number
 ) => {
+    const currentIndex = sortColumns.value.findIndex((s) => s.columnName === columnOption.columnName)
     if (currentIndex === -1) {
         // 添加新的排序列
         sortColumns.value = [...sortColumns.value, { columnName: columnOption.columnName, order }]
@@ -640,46 +639,3 @@ export const drawHeaderPart = (
 
 }
 
-/**
- * 设置/替换某列的过滤集合
- * @param columnName 列名
- * @param values 选中的值集合（可迭代）
- */
-export const setFilter = (columnName: string, values: Iterable<string>) => {
-    const newSet = new Set<string>(Array.from(values).map((v) => String(v)))
-    const idx = filterColumns.value.findIndex((f) => f.columnName === columnName)
-    if (idx === -1) {
-        filterColumns.value = [...filterColumns.value, { columnName, values: newSet }]
-    } else {
-        const next = [...filterColumns.value]
-        next[idx] = { columnName, values: newSet }
-        filterColumns.value = next
-    }
-    handleTableData()
-    clearGroups()
-}
-
-/**
- * 清除某列过滤
- */
-export const clearFilter = (columnName: string) => {
-    const idx = filterColumns.value.findIndex((f) => f.columnName === columnName)
-    if (idx !== -1) {
-        const next = [...filterColumns.value]
-        next.splice(idx, 1)
-        filterColumns.value = next
-        handleTableData()
-        clearGroups()
-    }
-}
-
-/**
- * 清除全部过滤
- */
-export const clearAllFilters = () => {
-    if (filterColumns.value.length) {
-        filterColumns.value = []
-        handleTableData()
-        clearGroups()
-    }
-}
