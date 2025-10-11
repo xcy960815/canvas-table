@@ -178,68 +178,20 @@ export const calculateScrollRange = () => {
 }
 
 
-/**
- * 更新滚动位置
- * @returns {void}
- */
-export const updateScrollPositions = () => {
-    if (
-        !stageVars.stage ||
-        !bodyVars.leftBodyGroup ||
-        !bodyVars.centerBodyGroup ||
-        !bodyVars.rightBodyGroup ||
-        !headerVars.centerHeaderGroup
-    ) return
-
-    // 预计算常用值
-    const scrollY = -scrollbarVars.stageScrollY
-    const centerX = -scrollbarVars.stageScrollX
-    const headerX = columnsInfo.leftPartWidth - scrollbarVars.stageScrollX
-
-    // 批量更新位置 - 减少函数调用
-    bodyVars.leftBodyGroup.y(scrollY)
-    bodyVars.rightBodyGroup.y(scrollY)
-    bodyVars.centerBodyGroup.setAttrs({ x: centerX, y: scrollY })
-    headerVars.centerHeaderGroup.x(headerX)
-
-    // 更新汇总组位置
-    if (summaryVars.centerSummaryGroup) {
-        summaryVars.centerSummaryGroup.setAttrs({ x: headerX, y: 0 })
-    }
-
-    // 滚动条更新 - 只在必要时计算
-    const { width: stageWidth, height: stageHeight } = getStageSize()
-    const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
-
-    if (scrollbarVars.verticalScrollbarThumb && maxVerticalScroll > 0) {
-        const trackHeight = stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight -
-            (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
-        const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
-        const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
-        scrollbarVars.verticalScrollbarThumb.y(thumbY)
-    }
-
-    if (scrollbarVars.horizontalScrollbarThumb && maxHorizontalScroll > 0) {
-        const visibleWidth = stageWidth - columnsInfo.leftPartWidth - columnsInfo.rightPartWidth -
-            (maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0)
-        const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / columnsInfo.centerPartWidth)
-        const thumbX = columnsInfo.leftPartWidth + (maxHorizontalScroll > 0 ? (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth) : 0)
-        scrollbarVars.horizontalScrollbarThumb.x(thumbX)
-    }
-
-    // 批量重绘所有相关层（包含滚动条）
-    scheduleLayersBatchDraw(['header', 'body', 'fixed', 'scrollbar', 'summary'])
-}
 
 /**
  * 更新水平滚动
- * @param {number} offsetX - 滚动偏移量
+ * @param {number} offsetX - 滚动偏移量（相对模式）或新的滚动位置（绝对模式）
+ * @param {boolean} isAbsolute - 是否为绝对位置模式，默认为 false（相对模式）
  * @returns {void}
  */
-export const updateHorizontalScroll = (offsetX: number) => {
+export const updateHorizontalScroll = (offsetX: number, isAbsolute: boolean = false) => {
     if (!stageVars.stage || !headerVars.centerHeaderGroup || !bodyVars.centerBodyGroup) return
     const { maxHorizontalScroll } = calculateScrollRange()
-    scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX + offsetX, 0, maxHorizontalScroll)
+    
+    // 根据模式计算新的滚动位置
+    const newScrollX = isAbsolute ? offsetX : scrollbarVars.stageScrollX + offsetX
+    scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxHorizontalScroll)
     const headerX = columnsInfo.leftPartWidth - scrollbarVars.stageScrollX
     const centerX = -scrollbarVars.stageScrollX
 
@@ -266,30 +218,57 @@ export const updateHorizontalScroll = (offsetX: number) => {
 
 
 /**
- * 更新垂直滚动
- * @param {number} offsetY - 滚动偏移量
+ * 滚动选项接口
+ */
+interface ScrollOptions {
+    /** 是否为绝对位置设置（拖拽模式） */
+    isAbsolute?: boolean
+    /** 是否跳过重渲染阈值检查 */
+    skipThresholdCheck?: boolean
+    /** 强制重渲染 */
+    forceRerender?: boolean
+}
+
+/**
+ * 更新垂直滚动 - 统一的滚动处理方法
+ * @param {number} offsetY - 滚动偏移量（增量模式）或绝对位置（绝对模式）
+ * @param {ScrollOptions} options - 滚动选项
  * @returns {void}
  */
-export const updateVerticalScroll = (offsetY: number) => {
-
+export const updateVerticalScroll = (offsetY: number, options: ScrollOptions = {}) => {
     if (!stageVars.stage || !bodyVars.leftBodyGroup || !bodyVars.centerBodyGroup || !bodyVars.rightBodyGroup) return
 
-    const actualOffsetY = offsetY
-
+    const { isAbsolute = false, skipThresholdCheck = false, forceRerender = false } = options
     const { maxVerticalScroll } = calculateScrollRange()
 
-    scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxVerticalScroll)
-    
+    // 保存旧的滚动位置和可视范围
+    const oldScrollY = scrollbarVars.stageScrollY
     const oldVisibleStart = bodyVars.visibleRowStart
-
     const oldVisibleEnd = bodyVars.visibleRowEnd
 
+    // 根据模式更新滚动位置
+    if (isAbsolute) {
+        // 拖拽模式：直接设置绝对位置
+        scrollbarVars.stageScrollY = constrainToRange(offsetY, 0, maxVerticalScroll)
+    } else {
+        // 滚轮模式：增量更新
+        scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + offsetY, 0, maxVerticalScroll)
+    }
+
+    // 重新计算可视行范围
     calculateVisibleRows()
 
-    const visibleRangeChanged =
-        bodyVars.visibleRowStart !== oldVisibleStart || bodyVars.visibleRowEnd !== oldVisibleEnd
+    // 判断是否需要重渲染
+    const visibleRangeChanged = 
+        bodyVars.visibleRowStart !== oldVisibleStart || 
+        bodyVars.visibleRowEnd !== oldVisibleEnd
 
-    if (visibleRangeChanged) {
+    const significantScroll = skipThresholdCheck || 
+        Math.abs(scrollbarVars.stageScrollY - oldScrollY) > staticParams.bodyRowHeight * 5
+
+    const needsRerender = forceRerender || visibleRangeChanged || significantScroll
+
+    if (needsRerender) {
         // 重新渲染可视区域
         // 主体相关 - 批量执行重绘操作，减少单独的绘制调用
         const renderOperations = [
@@ -329,8 +308,8 @@ export const updateVerticalScroll = (offsetY: number) => {
             const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVScroll) * (trackHeight - thumbHeight)
             scrollbarVars.verticalScrollbarThumb.y(thumbY)
         }
-
     }
+    
     scheduleLayersBatchDraw(['body', 'fixed', 'scrollbar', 'summary'])
 }
 

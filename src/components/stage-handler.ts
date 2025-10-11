@@ -5,7 +5,7 @@ import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup,
 
 import { bodyVars, calculateVisibleRows, calculateColumnsInfo, columnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart } from './body-handler'
 import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart, getSummaryRowHeight } from './summary-handler'
-import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, updateScrollPositions, calculateScrollRange, createVerticalScrollbarGroup, createHorizontalScrollbarGroup } from './scrollbar-handler'
+import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, calculateScrollRange, createVerticalScrollbarGroup, createHorizontalScrollbarGroup, updateVerticalScroll, updateHorizontalScroll } from './scrollbar-handler'
 
 /**
  * 更新列宽调整指示线（直接调用，不使用 RAF 节流）
@@ -253,15 +253,7 @@ export const refreshTable = (resetScroll: boolean) => {
     
     clearGroups()
     rebuildGroups()
-    
-    // 重建后，如果不重置滚动位置，需要约束到新的有效范围并更新位置
-    if (!resetScroll) {
-        const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
-        scrollbarVars.stageScrollX = constrainToRange(scrollbarVars.stageScrollX, 0, maxHorizontalScroll)
-        scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY, 0, maxVerticalScroll)
-        console.log('refreshTable', scrollbarVars.stageScrollX, scrollbarVars.stageScrollY);
-        updateScrollPositions()
-    }
+
 }
 
 /**
@@ -464,7 +456,6 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     // 手动拖拽导致的垂直滚动
     if (scrollbarVars.isDraggingVerticalThumb) {
         const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
-        console.log('deltaY', deltaY);
         const { maxVerticalScroll, maxHorizontalScroll } = calculateScrollRange()
         const { height: stageHeight } = getStageSize()
         const trackHeight =
@@ -476,29 +467,11 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         const scrollRatio = deltaY / (trackHeight - thumbHeight)
         const newScrollY = scrollbarVars.dragStartScrollY + scrollRatio * maxVerticalScroll
 
-        const oldScrollY = scrollbarVars.stageScrollY
-        scrollbarVars.stageScrollY = constrainToRange(newScrollY, 0, maxVerticalScroll)
-
-        // 检查是否需要重新渲染虚拟滚动内容
-        const oldVisibleStart = bodyVars.visibleRowStart
-        const oldVisibleEnd = bodyVars.visibleRowEnd
-
-        // 计算新的可视行范围
-        calculateVisibleRows()
-
-        const needsRerender =
-            bodyVars.visibleRowStart !== oldVisibleStart ||
-            bodyVars.visibleRowEnd !== oldVisibleEnd ||
-            Math.abs(scrollbarVars.stageScrollY - oldScrollY) > staticParams.bodyRowHeight * 5
-
-        if (needsRerender) {
-            // 主体相关 - 重新绘制所有主体部分
-            drawBodyPart(bodyVars.leftBodyGroup, columnsInfo.leftColumns, bodyVars.leftBodyPools)
-            drawBodyPart(bodyVars.centerBodyGroup, columnsInfo.centerColumns, bodyVars.centerBodyPools)
-            drawBodyPart(bodyVars.rightBodyGroup, columnsInfo.rightColumns, bodyVars.rightBodyPools)
-        }
-
-        updateScrollPositions()
+        // 使用统一的垂直滚动方法 - 拖拽模式
+        updateVerticalScroll(newScrollY, {
+            isAbsolute: true,
+            skipThresholdCheck: true  // 拖拽时保持原有的阈值检查逻辑
+        })
         return
     }
 
@@ -506,7 +479,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     if (scrollbarVars.isDraggingHorizontalThumb) {
         const deltaX = mouseEvent.clientX - scrollbarVars.dragStartX
         const { maxHorizontalScroll } = calculateScrollRange()
-        const { width: stageWidth, height: stageHeight } = getStageSize()
+        const { width: stageWidth } = getStageSize()
         // Account for vertical scrollbar only if present
         const { maxVerticalScroll } = calculateScrollRange()
         const verticalScrollbarSpace = maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0
@@ -515,8 +488,8 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
         const scrollRatio = deltaX / (visibleWidth - thumbWidth)
         const newScrollX = scrollbarVars.dragStartScrollX + scrollRatio * maxHorizontalScroll
 
-        scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxHorizontalScroll)
-        updateScrollPositions()
+        // 使用统一的水平滚动方法，传入绝对位置
+        updateHorizontalScroll(newScrollX, true)
         return
     }
 
