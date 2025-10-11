@@ -130,25 +130,4 @@ export const handleMultiColumnSort = (
     }
 }
 
-/**
- * 清除所有排序
- */
-export const clearAllSorts = () => {
-    sortColumns.value = []
-}
 
-/**
- * 清除所有过滤
- */
-export const clearAllFilters = () => {
-    filterColumns.value = []
-}
-
-/**
- * 重置所有数据处理状态
- */
-export const resetDataProcessing = () => {
-    clearAllSorts()
-    clearAllFilters()
-    handleTableData()
-}

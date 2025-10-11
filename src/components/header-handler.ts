@@ -167,9 +167,6 @@ export const createHeaderRightGroup = (x: number, y: number) => createGroup('hea
 export const createHeaderClipGroup = (x: number, y: number, { width, height }: { x: number, y: number, width: number, height: number }) => createGroup('header', 'center', x, y, { x, y, width, height })
 
 
-
-
-
 /**
  * 创建过滤图标
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} col - 列

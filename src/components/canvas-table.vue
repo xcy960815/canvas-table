@@ -6,7 +6,7 @@ import { tableProps, staticParams } from './parameter';
 import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { stageVars, initStage, destroyStage, initStageListeners, cleanupStageListeners } from './stage-handler';
 import { sortColumns, handleTableData } from './data-handler';
-import { initWheelListener,cleanupWheelListener } from './scrollbar-handler';
+import { initWheelListener, cleanupWheelListener } from './scrollbar-handler';
 import { refreshTable } from './stage-handler';
 
 const props = defineProps(tableProps);
@@ -68,16 +68,23 @@ watch(props, () => {
   immediate: true
 })
 
-/**
- * 监听 props 变化
- * @returns {void}
- */
 watch(
-  () => [props.xAxisFields, props.yAxisFields, props.data],
+  () => [props.data],
   () => {
     if (!stageVars.stage) return
     handleTableData()
     refreshTable(true)
+  },
+  {
+    deep: true
+  }
+)
+
+watch(
+  () => [props.xAxisFields, props.yAxisFields],
+  () => {
+    if (!stageVars.stage) return
+    refreshTable(false)
   },
   {
     deep: true

@@ -158,6 +158,7 @@ export const calculateVisibleRows = () => {
         tableData.value.length - 1,
         startRow + bodyVars.visibleRowCount + staticParams.bufferRows
     )
+    
 }
 /**
  * 计算列宽总和

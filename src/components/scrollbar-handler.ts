@@ -188,7 +188,7 @@ export const calculateScrollRange = () => {
 export const updateHorizontalScroll = (offsetX: number, isAbsolute: boolean = false) => {
     if (!stageVars.stage || !headerVars.centerHeaderGroup || !bodyVars.centerBodyGroup) return
     const { maxHorizontalScroll } = calculateScrollRange()
-    
+
     // 根据模式计算新的滚动位置
     const newScrollX = isAbsolute ? offsetX : scrollbarVars.stageScrollX + offsetX
     scrollbarVars.stageScrollX = constrainToRange(newScrollX, 0, maxHorizontalScroll)
@@ -211,7 +211,6 @@ export const updateHorizontalScroll = (offsetX: number, isAbsolute: boolean = fa
             scrollbarVars.horizontalScrollbarThumb.x(thumbX)
         }
     }
-
     // 水平滚动需要更新表头、主体、固定列和汇总行
     scheduleLayersBatchDraw(['header', 'body', 'fixed', 'scrollbar', 'summary'])
 }
@@ -237,7 +236,6 @@ interface ScrollOptions {
  */
 export const updateVerticalScroll = (offsetY: number, options: ScrollOptions = {}) => {
     if (!stageVars.stage || !bodyVars.leftBodyGroup || !bodyVars.centerBodyGroup || !bodyVars.rightBodyGroup) return
-
     const { isAbsolute = false, skipThresholdCheck = false, forceRerender = false } = options
     const { maxVerticalScroll } = calculateScrollRange()
 
@@ -259,11 +257,11 @@ export const updateVerticalScroll = (offsetY: number, options: ScrollOptions = {
     calculateVisibleRows()
 
     // 判断是否需要重渲染
-    const visibleRangeChanged = 
-        bodyVars.visibleRowStart !== oldVisibleStart || 
+    const visibleRangeChanged =
+        bodyVars.visibleRowStart !== oldVisibleStart ||
         bodyVars.visibleRowEnd !== oldVisibleEnd
 
-    const significantScroll = skipThresholdCheck || 
+    const significantScroll = skipThresholdCheck ||
         Math.abs(scrollbarVars.stageScrollY - oldScrollY) > staticParams.bodyRowHeight * 5
 
     const needsRerender = forceRerender || visibleRangeChanged || significantScroll
@@ -291,9 +289,9 @@ export const updateVerticalScroll = (offsetY: number, options: ScrollOptions = {
     const centerY = -scrollbarVars.stageScrollY
 
     // 主体相关 - 固定列和中间列随垂直滚动
-    bodyVars.leftBodyGroup.y(fixedColumnsY)
+    bodyVars.leftBodyGroup?.y(fixedColumnsY)
     bodyVars.rightBodyGroup?.y(fixedColumnsY)
-    bodyVars.centerBodyGroup.y(centerY)
+    bodyVars.centerBodyGroup?.y(centerY)
 
     /* 更新滚动条位置 */
     if (stageVars.stage) {
@@ -309,7 +307,7 @@ export const updateVerticalScroll = (offsetY: number, options: ScrollOptions = {
             scrollbarVars.verticalScrollbarThumb.y(thumbY)
         }
     }
-    
+
     scheduleLayersBatchDraw(['body', 'fixed', 'scrollbar', 'summary'])
 }
 

@@ -1,8 +1,7 @@
 import Konva from 'konva'
 import { staticParams, tableData } from "./parameter"
-import { constrainToRange, getTableContainer, setPointerStyle, clearPool } from './utils'
+import { getTableContainer, setPointerStyle, clearPool } from './utils'
 import { createHeaderCenterGroup, createHeaderLeftGroup, createHeaderRightGroup, createHeaderClipGroup, drawHeaderPart, headerVars } from './header-handler'
-
 import { bodyVars, calculateVisibleRows, calculateColumnsInfo, columnsInfo, createBodyLeftGroup, createBodyCenterGroup, createBodyRightGroup, createLeftBodyClipGroup, createCenterBodyClipGroup, createRightBodyClipGroup, drawBodyPart } from './body-handler'
 import { summaryVars, createSummaryLeftGroup, createSummaryCenterGroup, createSummaryRightGroup, createSummaryClipGroup, drawSummaryPart, getSummaryRowHeight } from './summary-handler'
 import { drawHorizontalScrollbarPart, drawVerticalScrollbarPart, scrollbarVars, calculateScrollRange, createVerticalScrollbarGroup, createHorizontalScrollbarGroup, updateVerticalScroll, updateHorizontalScroll } from './scrollbar-handler'
@@ -250,10 +249,8 @@ export const refreshTable = (resetScroll: boolean) => {
         scrollbarVars.stageScrollX = 0
         scrollbarVars.stageScrollY = 0
     }
-    
     clearGroups()
     rebuildGroups()
-
 }
 
 /**
@@ -275,18 +272,18 @@ const rebuildHeaderGroup = () => {
 
     headerVars.headerLayer.add(headerClipGroup)
 
-    headerVars.leftHeaderGroup = createHeaderLeftGroup(0, 0)
-    headerVars.centerHeaderGroup = createHeaderCenterGroup(columnsInfo.leftPartWidth, 0)
-    headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - columnsInfo.rightPartWidth - verticalScrollbarWidth, 0)
+    // headerVars.leftHeaderGroup = createHeaderLeftGroup(0, 0)
+    // headerVars.centerHeaderGroup = createHeaderCenterGroup(-scrollbarVars.stageScrollX + columnsInfo.leftPartWidth, 0)
+    // headerVars.rightHeaderGroup = createHeaderRightGroup(stageWidth - columnsInfo.rightPartWidth - verticalScrollbarWidth, 0)
 
-    headerClipGroup.add(headerVars.centerHeaderGroup)
+    // headerClipGroup.add(headerVars.centerHeaderGroup)
 
-    headerVars.headerLayer.add(headerVars.leftHeaderGroup, headerVars.rightHeaderGroup) // 固定表头必须在表头层，确保不被body层遮挡
+    // headerVars.headerLayer.add(headerVars.leftHeaderGroup, headerVars.rightHeaderGroup) // 固定表头必须在表头层，确保不被body层遮挡
 
     // 绘制表头
-    drawHeaderPart(headerVars.leftHeaderGroup, columnsInfo.leftColumns)
-    drawHeaderPart(headerVars.centerHeaderGroup, columnsInfo.centerColumns)
-    drawHeaderPart(headerVars.rightHeaderGroup, columnsInfo.rightColumns)
+    // drawHeaderPart(headerVars.leftHeaderGroup, columnsInfo.leftColumns)
+    // drawHeaderPart(headerVars.centerHeaderGroup, columnsInfo.centerColumns)
+    // drawHeaderPart(headerVars.rightHeaderGroup, columnsInfo.rightColumns)
 }
 
 /**
@@ -310,7 +307,6 @@ const rebuildBodyGroup = () => {
     })
 
     bodyVars.bodyLayer.add(centerBodyClipGroup)
-
     bodyVars.leftBodyGroup = createBodyLeftGroup(0, 0) // 现在相对于裁剪组，初始位置为0
     bodyVars.centerBodyGroup = createBodyCenterGroup(-scrollbarVars.stageScrollX, -scrollbarVars.stageScrollY)
     bodyVars.rightBodyGroup = createBodyRightGroup(0, 0) // 现在相对于裁剪组，初始位置为0
@@ -381,7 +377,7 @@ const rebuildSummaryGroup = () => {
         summaryVars.summaryLayer.add(centerSummaryClipGroup)
 
         summaryVars.leftSummaryGroup = createSummaryLeftGroup(0, y) // 直接定位到汇总行位置
-        summaryVars.centerSummaryGroup = createSummaryCenterGroup(columnsInfo.leftPartWidth, 0)
+        summaryVars.centerSummaryGroup = createSummaryCenterGroup(-scrollbarVars.stageScrollX + columnsInfo.leftPartWidth, 0)
         summaryVars.rightSummaryGroup = createSummaryRightGroup(stageWidth - columnsInfo.rightPartWidth - verticalScrollbarWidth, y)
 
         centerSummaryClipGroup.add(summaryVars.centerSummaryGroup)
@@ -436,8 +432,8 @@ export const rebuildGroups = () => {
     // 首先计算列信息
     calculateColumnsInfo()
     rebuildHeaderGroup()
-    rebuildBodyGroup()
-    rebuildSummaryGroup()
+    // rebuildBodyGroup()
+    // rebuildSummaryGroup()
     rebuildVerticalScrollbarGroup()
     rebuildHorizontalScrollbarGroup()
     // 批量绘制所有层 - 按正确的渲染顺序
@@ -449,7 +445,7 @@ export const rebuildGroups = () => {
  * 全局鼠标移动处理
  * @param {MouseEvent} mouseEvent - 鼠标事件
  */
-export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
+const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     if (!stageVars.stage) return
     stageVars.stage.setPointersPositions(mouseEvent)
 
@@ -507,7 +503,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
  * 全局鼠标抬起处理
  * @param {MouseEvent} mouseEvent - 鼠标事件
  */
-export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
+const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
     if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
 
     // 垂直滚动条拖拽结束
@@ -538,8 +534,7 @@ export const handleGlobalMouseUp = (mouseEvent: MouseEvent) => {
 
         if (targetField && headerVars.resizeTempWidth > 0) {
             targetField.width = headerVars.resizeTempWidth
-            // 刷新表格，保持滚动位置
-            refreshTable(false)
+            // 会触发watch 走重新渲染表格的逻辑
         }
 
         // 清理调整指示线
@@ -608,12 +603,10 @@ export const scheduleLayersBatchDraw = (layers: Array<'header' | 'body' | 'fixed
             case 'fixed':
                 bodyVars.fixedBodyLayer?.batchDraw()
                 break
-
             // 汇总相关
             case 'summary':
                 summaryVars.summaryLayer?.batchDraw()
                 break
-
             // 滚动条相关
             case 'scrollbar':
                 scrollbarVars.scrollbarLayer?.batchDraw()
