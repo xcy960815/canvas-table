@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import Konva from 'konva'
+import type { KonvaEventObject } from 'konva/lib/Node'
 import { stageVars, clearGroups } from './stage-handler'
 import { staticParams, tableData } from './parameter'
 import { filterColumns, sortColumns, handleTableData, getColumnSortStatus, handleMultiColumnSort } from './data-handler'
@@ -10,6 +11,7 @@ import {
     drawUnifiedRect,
     drawUnifiedText,
 } from './utils'
+import FilterDropdown from './components/filter-dropdown.vue'
 
 
 interface HeaderVars {
@@ -133,6 +135,9 @@ export const headerVars: HeaderVars = {
 }
 
 
+export const filterDropdownRef = ref<InstanceType<typeof FilterDropdown>>()
+
+
 /**
  * 创建表头左侧组
  * @param x x坐标
@@ -245,15 +250,17 @@ const createFilterIcon = (
     filterIcon.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'pointer'))
     filterIcon.on('mouseleave', () => setPointerStyle(stageVars.stage, false, 'default'))
 
-    filterIcon.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
+    filterIcon.on('click', (evt: KonvaEventObject<MouseEvent, Konva.Shape>) => {
         const uniqueValues = new Set<string>()
-        tableData.value.forEach((row) => uniqueValues.add(String(row[columnOption.columnName] ?? '')))
+        
+        // TODO 需要优化 遍历时间太长 暂时注释掉
+        // tableData.value.forEach((row) => uniqueValues.add(String(row[columnOption.columnName] ?? '')))
 
         const availableOptions = Array.from(uniqueValues)
         const currentSelection = filterItem ? Array.from(filterItem.values) : []
         const allOptions = Array.from(new Set([...availableOptions, ...currentSelection]))
 
-        // openFilterDropdown(evt, col.columnName, allOptions, currentSelection)
+        filterDropdownRef.value?.openFilterDropdown(evt, columnOption.columnName, allOptions, currentSelection)
     })
 
     headerGroup.add(filterIcon)
@@ -297,7 +304,7 @@ const createColumnResizer = (
         }
     })
 
-    resizerRect.on('mousedown', (evt: Konva.KonvaEventObject<MouseEvent>) => {
+    resizerRect.on('mousedown', (evt: KonvaEventObject<MouseEvent, Konva.Shape | Konva.Circle>) => {
         headerVars.isResizingColumn = true
         headerVars.resizingColumnName = columnOption.columnName
         headerVars.resizeStartX = evt.evt.clientX
@@ -371,7 +378,7 @@ const createSortIcon = (
 
     upArrow.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'pointer'))
     upArrow.on('mouseleave', () => setPointerStyle(stageVars.stage, false, 'default'))
-    upArrow.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
+    upArrow.on('click', (_evt: KonvaEventObject<MouseEvent, Konva.Path>) => {
         handleSortAction(columnOption, 'asc')
     })
 
@@ -384,7 +391,7 @@ const createSortIcon = (
 
     downArrow.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'pointer'))
     downArrow.on('mouseleave', () => setPointerStyle(stageVars.stage, false, 'default'))
-    downArrow.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
+    downArrow.on('click', (_evt: KonvaEventObject<MouseEvent, Konva.Path>) => {
         handleSortAction(columnOption, 'desc')
     })
 

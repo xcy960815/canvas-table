@@ -1,13 +1,21 @@
 <template>
-  <div id="table-container" class="table-container" :style="tableContainerStyle"></div>
+  <div id="table-container" :title="title" class="table-container" :style="tableContainerStyle"></div>
+  <!-- 过滤器下拉组件 -->
+  <filter-dropdown ref="filterDropdownRef" />
+  <!-- 汇总下拉组件 -->
+  <summary-dropdown ref="summaryDropdownRef" />
 </template>
 <script lang="ts" setup>
 import { tableProps, staticParams } from './parameter';
-import { onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
+import { onMounted, onUnmounted, computed, watch, nextTick, } from 'vue';
 import { stageVars, initStage, destroyStage, initStageListeners, cleanupStageListeners } from './stage-handler';
 import { sortColumns, handleTableData } from './data-handler';
 import { initWheelListener, cleanupWheelListener } from './scrollbar-handler';
+import { filterDropdownRef } from "./header-handler"
+import { summaryDropdownRef } from "./summary-handler"
 import { refreshTable } from './stage-handler';
+import FilterDropdown from './components/filter-dropdown.vue';
+import SummaryDropdown from './components/summary-dropdown.vue';
 
 const props = defineProps(tableProps);
 

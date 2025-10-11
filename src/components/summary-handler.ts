@@ -1,10 +1,12 @@
 import Konva from 'konva'
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { webworker } from '@/composables/useWebworker';
-import { drawUnifiedRect, createGroup, truncateText,drawUnifiedText } from "./utils"
+import { drawUnifiedRect, createGroup, truncateText, drawUnifiedText } from "./utils"
 import { stageVars } from './stage-handler'
 import { setPointerStyle } from "./utils"
 import { staticParams, tableData } from './parameter'
+import SummaryDropdown from './components/summary-dropdown.vue'
+import type { KonvaEventObject } from 'konva/lib/Node'
 
 interface SummaryVars {
     summaryLayer: Konva.Layer | null,
@@ -33,7 +35,10 @@ export const summaryVars: SummaryVars = {
     rightSummaryGroup: null,
 }
 
-
+/**
+ * 汇总下拉组件引用
+ */
+export const summaryDropdownRef = ref<InstanceType<typeof SummaryDropdown> | null>(null)
 
 /**
  * 数字列 汇总方式
@@ -103,7 +108,7 @@ export const getSummaryRowHeight = () => (staticParams.enableSummary ? staticPar
 /**
  * 汇总行选择状态：列名 -> 选中的规则 - 单独的响应式变量
  */
-const summaryState = reactive<Record<string, string>>({})
+export const summaryState = reactive<Record<string, string>>({})
 
 /**
  * 计算某列的汇总显示值
@@ -272,14 +277,14 @@ export const drawSummaryPart = (
         // 注释悬停效果以提升性能
         summaryCellRect.on('mouseenter', () => setPointerStyle(stageVars.stage, true, 'pointer'))
         summaryCellRect.on('mouseleave', () => setPointerStyle(stageVars.stage, false, 'default'))
-
-        summaryCellRect.on('click', (_evt: Konva.KonvaEventObject<MouseEvent>) => {
+        summaryCellRect.on('click', (evt: KonvaEventObject<MouseEvent, Konva.Rect>) => {
             if (!stageVars.stage) return
+            if (!summaryDropdownRef.value) return
             const isNumber = col.columnType === 'number'
             const options = isNumber ? numberOptions : textOptions
             const prev = summaryState[col.columnName] || 'nodisplay'
             const valid = options.some((o) => o.value === prev) ? prev : 'nodisplay'
-            // openSummaryDropdown(evt, col.columnName, options, valid)
+            summaryDropdownRef.value?.openSummaryDropdown(evt, col.columnName, options, valid)
         })
 
         x += colWidth

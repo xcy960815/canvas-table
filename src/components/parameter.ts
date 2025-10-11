@@ -1,7 +1,13 @@
 import type { PropType } from 'vue'
 
+/**
+ * 默认字体
+ */
 const defaultFontFamily = 'Arial, sans-serif'
 
+/**
+ * 表格Props
+ */
 export const tableProps = {
   /**
    * 图表标题

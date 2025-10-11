@@ -291,7 +291,7 @@ export const drawUnifiedRect = (config: DrawRectConfig): Konva.Rect => {
     })
 
     group.add(rectNode)
-    
+
     return rectNode
 }
 
@@ -369,4 +369,68 @@ export const createGroup = (
     }
 
     return new Konva.Group(groupConfig)
+}
+
+
+/**
+ * 获取下拉框的弹出位置
+ * @param {number} clientX
+ * @param {number} clientY
+ * @param {number} wapperWidth
+ * @param {number} wapperHeight
+ * @returns {dropdownX:number,dropdownY:number}
+ */
+export const getDropdownPosition = (clientX: number, clientY: number, wapperWidth: number, wapperHeight: number) => {
+    // 获取视口高度
+    const viewportHeight = window.innerHeight
+    // 获取视口宽度
+    const viewportWidth = window.innerWidth
+
+    // 计算各方向剩余空间
+    const spaceBelow = viewportHeight - clientY
+    const spaceAbove = clientY
+    const spaceRight = viewportWidth - clientX
+    const spaceLeft = clientX
+
+    // 垂直位置计算
+    let dropdownY = clientY
+    if (spaceBelow >= wapperHeight) {
+        // 下方空间充足，显示在点击位置下方
+        dropdownY = clientY + 5
+    } else if (spaceAbove >= wapperHeight) {
+        // 下方空间不足但上方空间充足，显示在点击位置上方
+        dropdownY = clientY - wapperHeight - 5
+    } else {
+        // 上下空间都不足，优先选择空间较大的一方
+        if (spaceBelow >= spaceAbove) {
+            dropdownY = clientY + 5
+        } else {
+            dropdownY = clientY - wapperHeight - 5
+        }
+        // 确保不超出边界
+        dropdownY = Math.max(5, Math.min(dropdownY, viewportHeight - wapperHeight - 5))
+    }
+
+    // 水平位置计算
+    let dropdownX = clientX
+    if (spaceRight >= wapperWidth) {
+        // 右侧空间充足，显示在点击位置右侧
+        dropdownX = clientX + 5
+    } else if (spaceLeft >= wapperWidth) {
+        // 右侧空间不足但左侧空间充足，显示在点击位置左侧
+        dropdownX = clientX - wapperWidth - 5
+    } else {
+        // 左右空间都不足，优先选择空间较大的一方
+        if (spaceRight >= spaceLeft) {
+            dropdownX = clientX + 5
+        } else {
+            dropdownX = clientX - wapperWidth - 5
+        }
+        // 确保不超出边界
+        dropdownX = Math.max(5, Math.min(dropdownX, viewportWidth - wapperWidth - 5))
+    }
+    return {
+        dropdownX,
+        dropdownY
+    }
 }
