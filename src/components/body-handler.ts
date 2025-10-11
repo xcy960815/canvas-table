@@ -253,8 +253,8 @@ export const calculateColumnsInfo = () => {
  * @param {Konva.Group} bodyGroup - 主体组
  * @param {number} x - x坐标
  * @param {number} y - y坐标
- * @param {number} cellWidth - 单元格宽度
- * @param {number} cellHeight - 单元格高度
+ * @param {number} width - 单元格宽度
+ * @param {number} height - 单元格高度
  * @param {number} rowIndex - 行索引
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
  * @param {ChartDataVo.ChartData} row - 行数据
@@ -265,8 +265,8 @@ const drawMergedCell = (
     bodyGroup: Konva.Group,
     x: number,
     y: number,
-    cellWidth: number,
-    cellHeight: number,
+    width: number,
+    height: number,
     rowIndex: number,
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     row: ChartDataVo.ChartData,
@@ -277,8 +277,8 @@ const drawMergedCell = (
         name: 'merged-cell-rect',
         x,
         y,
-        width: cellWidth,
-        height: cellHeight,
+        width: width,
+        height: height,
         fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
         stroke: staticParams.borderColor,
         strokeWidth: 1,
@@ -287,7 +287,7 @@ const drawMergedCell = (
 
     // 绘制合并单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)
-    const maxTextWidth = cellWidth - 16
+    const maxTextWidth = width - 16
     const truncatedValue = truncateText(value, maxTextWidth, staticParams.bodyFontSize, staticParams.bodyFontFamily)
 
     drawUnifiedText({
@@ -301,8 +301,8 @@ const drawMergedCell = (
         fill: staticParams.bodyTextColor,
         align: columnOption.align ?? 'left',
         verticalAlign: columnOption.verticalAlign ?? 'middle',
-        height:cellHeight,
-        width:cellWidth,
+        height:height,
+        width:width,
         group: bodyGroup
     })
 }
@@ -314,8 +314,8 @@ const drawMergedCell = (
  * @param {Konva.Group} bodyGroup - 主体组
  * @param {number} x - x坐标
  * @param {number} y - y坐标
- * @param {number} cellWidth - 单元格宽度
- * @param {number} cellHeight - 单元格高度
+ * @param {number} width - 单元格宽度
+ * @param {number} height - 单元格高度
  * @param {number} rowIndex - 行索引
  * @param {GroupStore.GroupOption | DimensionStore.DimensionOption} columnOption - 列配置
  * @param {ChartDataVo.ChartData} row - 行数据
@@ -326,8 +326,8 @@ const drawNormalCell = (
     bodyGroup: Konva.Group,
     x: number,
     y: number,
-    cellWidth: number,
-    cellHeight: number,
+    width: number,
+    height: number,
     rowIndex: number,
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     row: ChartDataVo.ChartData,
@@ -338,8 +338,8 @@ const drawNormalCell = (
         name: 'cell-rect',
         x,
         y,
-        width: cellWidth,
-        height: cellHeight,
+        width: width,
+        height: height,
         fill: rowIndex % 2 === 0 ? staticParams.bodyBackgroundOdd : staticParams.bodyBackgroundEven,
         stroke: staticParams.borderColor,
         strokeWidth: 1,
@@ -349,7 +349,7 @@ const drawNormalCell = (
 
     // 绘制单元格文本
     const value = getCellDisplayValue(columnOption, row, rowIndex)
-    const maxTextWidth = cellWidth - 16
+    const maxTextWidth = width - 16
     const truncatedValue = truncateText(value, maxTextWidth, staticParams.bodyFontSize, staticParams.bodyFontFamily)
     drawUnifiedText({
         pools,
@@ -357,8 +357,8 @@ const drawNormalCell = (
         text: truncatedValue,
         x,
         y,
-        height:cellHeight,
-        width:cellWidth,
+        height:height,
+        width:width,
         fontSize: staticParams.bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,
@@ -367,8 +367,6 @@ const drawNormalCell = (
         group: bodyGroup
     })
 }
-
-
 
 /**
  * 计算单元格合并信息
@@ -384,16 +382,16 @@ export const calculateCellSpan = (
     columnOption: GroupStore.GroupOption | DimensionStore.DimensionOption,
     rowIndex: number,
 ) => {
-    const res = spanMethod({ row, column: columnOption, rowIndex, colIndex: columnOption.colIndex || 0 })
+    const spanMethodResult = spanMethod({ row, column: columnOption, rowIndex, colIndex: columnOption.colIndex || 0 })
     let spanRow = 1
     let spanCol = 1
 
-    if (Array.isArray(res)) {
-        spanRow = Math.max(0, Number(res[0]) || 0)
-        spanCol = Math.max(0, Number(res[1]) || 0)
-    } else if (res && typeof res === 'object') {
-        spanRow = Math.max(0, Number(res.rowspan) || 0)
-        spanCol = Math.max(0, Number(res.colspan) || 0)
+    if (Array.isArray(spanMethodResult)) {
+        spanRow = Math.max(0, Number(spanMethodResult[0]) || 0)
+        spanCol = Math.max(0, Number(spanMethodResult[1]) || 0)
+    } else if (spanMethodResult && typeof spanMethodResult === 'object') {
+        spanRow = Math.max(0, Number(spanMethodResult.rowspan) || 0)
+        spanCol = Math.max(0, Number(spanMethodResult.colspan) || 0)
     }
 
     // 只要任一维度为 0，即视为被合并覆盖（与常见表格合并语义一致）
@@ -481,20 +479,20 @@ export const drawBodyPart = (
             }
 
             const computedRowSpan = hasSpanMethod ? spanRow : 1
-            const cellHeight = computedRowSpan * staticParams.bodyRowHeight
-            const cellWidth = calculateMergedCellWidth(spanCol, colIndex, bodyCols, columnWidth)
+            const height = computedRowSpan * staticParams.bodyRowHeight
+            const width = calculateMergedCellWidth(spanCol, colIndex, bodyCols, columnWidth)
 
             // 绘制单元格
             if (hasSpanMethod && (computedRowSpan > 1 || spanCol > 1)) {
-                drawMergedCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row)
+                drawMergedCell(pools, bodyGroup, x, y, width, height, rowIndex, columnOption, row)
             } else {
-                drawNormalCell(pools, bodyGroup, x, y, cellWidth, cellHeight, rowIndex, columnOption, row)
+                drawNormalCell(pools, bodyGroup, x, y, width, height, rowIndex, columnOption, row)
             }
 
             // 计算下一个位置和跳过的列数
             if (hasSpanMethod && spanCol > 1) {
                 colIndex += spanCol - 1
-                x += cellWidth
+                x += width
             } else {
                 x += columnWidth
             }

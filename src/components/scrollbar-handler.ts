@@ -211,27 +211,20 @@ export const updateScrollPositions = () => {
     const { width: stageWidth, height: stageHeight } = getStageSize()
     const { maxHorizontalScroll, maxVerticalScroll } = calculateScrollRange()
 
-    // 批量更新滚动条位置
-    let needsScrollbarRedraw = false
-
     if (scrollbarVars.verticalScrollbarThumb && maxVerticalScroll > 0) {
         const trackHeight = stageHeight - staticParams.headerRowHeight - staticParams.summaryRowHeight -
             (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
         const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
         const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
-
         scrollbarVars.verticalScrollbarThumb.y(thumbY)
-        needsScrollbarRedraw = true
     }
 
     if (scrollbarVars.horizontalScrollbarThumb && maxHorizontalScroll > 0) {
         const visibleWidth = stageWidth - columnsInfo.leftPartWidth - columnsInfo.rightPartWidth -
             (maxVerticalScroll > 0 ? staticParams.scrollbarSize : 0)
         const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / columnsInfo.centerPartWidth)
-        const thumbX = columnsInfo.leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
-
+        const thumbX = columnsInfo.leftPartWidth + (maxHorizontalScroll > 0 ? (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth) : 0)
         scrollbarVars.horizontalScrollbarThumb.x(thumbX)
-        needsScrollbarRedraw = true
     }
 
     // 批量重绘所有相关层（包含滚动条）
@@ -241,6 +234,7 @@ export const updateScrollPositions = () => {
 /**
  * 更新水平滚动
  * @param {number} offsetX - 滚动偏移量
+ * @returns {void}
  */
 export const updateHorizontalScroll = (offsetX: number) => {
     if (!stageVars.stage || !headerVars.centerHeaderGroup || !bodyVars.centerBodyGroup) return
@@ -252,11 +246,9 @@ export const updateHorizontalScroll = (offsetX: number) => {
     // 主体相关 - 中间区域随横向滚动
     headerVars.centerHeaderGroup.x(headerX)
     bodyVars.centerBodyGroup?.x(centerX)
-    summaryVars.centerSummaryGroup?.x(headerX) // 修复：汇总行应该和表头使用相同的X坐标（headerX）
-
-    /* 更新滚动条位置 */
+    summaryVars.centerSummaryGroup?.x(headerX)
     if (stageVars.stage) {
-        const { width: stageWidth, height: stageHeight } = getStageSize()
+        const { width: stageWidth } = getStageSize()
         const { maxHorizontalScroll: maxHScroll, maxVerticalScroll } = calculateScrollRange()
 
         // 更新水平滚动条位置
@@ -266,7 +258,6 @@ export const updateHorizontalScroll = (offsetX: number) => {
             const thumbX = columnsInfo.leftPartWidth + (scrollbarVars.stageScrollX / maxHScroll) * (visibleWidth - thumbWidth)
             scrollbarVars.horizontalScrollbarThumb.x(thumbX)
         }
-
     }
 
     // 水平滚动需要更新表头、主体、固定列和汇总行
@@ -277,8 +268,10 @@ export const updateHorizontalScroll = (offsetX: number) => {
 /**
  * 更新垂直滚动
  * @param {number} offsetY - 滚动偏移量
+ * @returns {void}
  */
 export const updateVerticalScroll = (offsetY: number) => {
+
     if (!stageVars.stage || !bodyVars.leftBodyGroup || !bodyVars.centerBodyGroup || !bodyVars.rightBodyGroup) return
 
     const actualOffsetY = offsetY
@@ -286,6 +279,7 @@ export const updateVerticalScroll = (offsetY: number) => {
     const { maxVerticalScroll } = calculateScrollRange()
 
     scrollbarVars.stageScrollY = constrainToRange(scrollbarVars.stageScrollY + actualOffsetY, 0, maxVerticalScroll)
+    
     const oldVisibleStart = bodyVars.visibleRowStart
 
     const oldVisibleEnd = bodyVars.visibleRowEnd
@@ -324,7 +318,7 @@ export const updateVerticalScroll = (offsetY: number) => {
 
     /* 更新滚动条位置 */
     if (stageVars.stage) {
-        const { width: stageWidth, height: stageHeight } = getStageSize()
+        const { height: stageHeight } = getStageSize()
         const { maxHorizontalScroll, maxVerticalScroll: maxVScroll } = calculateScrollRange()
 
         // 更新垂直滚动条位置
@@ -365,7 +359,6 @@ const setupVerticalScrollbarEvents = () => {
         scrollbarVars.verticalScrollbarThumb.on('mouseenter', () => {
             scrollbarVars.verticalScrollbarThumb?.fill(staticParams.scrollbarThumbHoverBackground)
             setPointerStyle(stageVars.stage, true, 'grab')
-            // tableVars.scrollbarLayer?.batchDraw()
         })
     }
 
@@ -373,7 +366,6 @@ const setupVerticalScrollbarEvents = () => {
         scrollbarVars.verticalScrollbarThumb.on('mouseleave', () => {
             scrollbarVars.verticalScrollbarThumb?.fill(staticParams.scrollbarThumbBackground)
             setPointerStyle(stageVars.stage, false, 'grab')
-            // tableVars.scrollbarLayer?.batchDraw()
         })
     }
 }
@@ -439,8 +431,8 @@ export const drawVerticalScrollbarPart = () => {
     const trackHeight =
         stageHeight - staticParams.headerRowHeight - getSummaryRowHeight() - (maxHorizontalScroll > 0 ? staticParams.scrollbarSize : 0)
     const thumbHeight = Math.max(20, (trackHeight * trackHeight) / (tableData.value.length * staticParams.bodyRowHeight))
-    // 计算垂直滚动条 Y 坐标
-    const thumbY = staticParams.headerRowHeight + (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight)
+    // 计算垂直滚动条 Y 坐标 - 防止除零错误
+    const thumbY = staticParams.headerRowHeight + (maxVerticalScroll > 0 ? (scrollbarVars.stageScrollY / maxVerticalScroll) * (trackHeight - thumbHeight) : 0)
 
     // 绘制垂直滚动条滑块
     scrollbarVars.verticalScrollbarThumb = drawUnifiedRect({
@@ -482,7 +474,6 @@ const setupHorizontalScrollbarEvents = () => {
             scrollbarVars.horizontalScrollbarThumb.fill(staticParams.scrollbarThumbHoverBackground)
             setPointerStyle(stageVars.stage, true, 'grab')
         }
-        // scrollbarVars.scrollbarLayer?.batchDraw()
     })
 
     scrollbarVars.horizontalScrollbarThumb.on('mouseleave', () => {
@@ -490,7 +481,6 @@ const setupHorizontalScrollbarEvents = () => {
             scrollbarVars.horizontalScrollbarThumb.fill(staticParams.scrollbarThumbBackground)
             setPointerStyle(stageVars.stage, false, 'grab')
         }
-        // scrollbarVars.scrollbarLayer?.batchDraw()
     })
 }
 
@@ -523,7 +513,7 @@ export const drawHorizontalScrollbarPart = () => {
     // 计算水平滚动条宽度
     const visibleWidth = stageWidth - columnsInfo.leftPartWidth - columnsInfo.rightPartWidth - verticalScrollbarSpaceForThumb
     const thumbWidth = Math.max(20, (visibleWidth * visibleWidth) / columnsInfo.centerPartWidth)
-    const thumbX = columnsInfo.leftPartWidth + (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth)
+    const thumbX = columnsInfo.leftPartWidth + (maxHorizontalScroll > 0 ? (scrollbarVars.stageScrollX / maxHorizontalScroll) * (visibleWidth - thumbWidth) : 0)
 
     // 绘制水平滚动条滑块
     scrollbarVars.horizontalScrollbarThumb = drawUnifiedRect({
@@ -546,32 +536,33 @@ export const drawHorizontalScrollbarPart = () => {
 
 /**
  * 处理滚轮事件
- * @param {WheelEvent} e - 滚轮事件
+ * @param {WheelEvent} wheelEvent - 滚轮事件
+ * @returns {void}
  */
-const handleMouseWheel = (e: WheelEvent) => {
-    e.preventDefault()
+const handleMouseWheel = (wheelEvent: WheelEvent) => {
+    wheelEvent.preventDefault()
 
-    if (stageVars.stage) stageVars.stage.setPointersPositions(e)
+    if (stageVars.stage) stageVars.stage.setPointersPositions(wheelEvent)
 
-    const hasDeltaX = Math.abs(e.deltaX) > 0
-    const hasDeltaY = Math.abs(e.deltaY) > 0
+    const hasDeltaX = Math.abs(wheelEvent.deltaX) > 0
+    const hasDeltaY = Math.abs(wheelEvent.deltaY) > 0
 
     // 兼容 Shift + 滚轮用于横向滚动（常见于鼠标）
-    if (e.shiftKey && !hasDeltaX && hasDeltaY) {
-        updateHorizontalScroll(e.deltaY)
+    if (wheelEvent.shiftKey && !hasDeltaX && hasDeltaY) {
+        updateHorizontalScroll(wheelEvent.deltaY)
         return
     }
 
     // 实现滚动方向锁定：比较 deltaY 和 deltaX 的绝对值，只执行主要方向的滚动
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    if (Math.abs(wheelEvent.deltaY) > Math.abs(wheelEvent.deltaX)) {
         // 主要是上下滚动
         if (hasDeltaY) {
-            updateVerticalScroll(e.deltaY)
+            updateVerticalScroll(wheelEvent.deltaY)
         }
     } else {
         // 主要是左右滚动
         if (hasDeltaX) {
-            updateHorizontalScroll(e.deltaX)
+            updateHorizontalScroll(wheelEvent.deltaX)
         }
     }
 }

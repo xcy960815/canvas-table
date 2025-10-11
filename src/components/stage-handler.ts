@@ -441,16 +441,13 @@ const rebuildHorizontalScrollbarGroup = () => {
  */
 export const rebuildGroups = () => {
     if (!stageVars.stage) return
-
     // 首先计算列信息
     calculateColumnsInfo()
-
     rebuildHeaderGroup()
     rebuildBodyGroup()
     rebuildSummaryGroup()
     rebuildVerticalScrollbarGroup()
     rebuildHorizontalScrollbarGroup()
-
     // 批量绘制所有层 - 按正确的渲染顺序
     scheduleLayersBatchDraw(['body', 'fixed', 'header', 'summary', 'scrollbar'])
 }
@@ -467,6 +464,7 @@ export const handleGlobalMouseMove = (mouseEvent: MouseEvent) => {
     // 手动拖拽导致的垂直滚动
     if (scrollbarVars.isDraggingVerticalThumb) {
         const deltaY = mouseEvent.clientY - scrollbarVars.dragStartY
+        console.log('deltaY', deltaY);
         const { maxVerticalScroll, maxHorizontalScroll } = calculateScrollRange()
         const { height: stageHeight } = getStageSize()
         const trackHeight =
