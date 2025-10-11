@@ -358,7 +358,6 @@ export const createGroup = (
         : `${position}-${groupType}${clip ? '-clip' : ''}-group`
 
     const groupConfig: Konva.GroupConfig = {
-        fill: 'red',
         x: position === 'left' ? 0 : x, // 左侧固定列的x永远为0
         y: position === 'center' && groupType !== 'header' ? y : groupType === 'header' ? 0 : y,
         name: groupName
