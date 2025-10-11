@@ -1,93 +1,54 @@
 <template>
   <teleport to="body">
-    <div
-      v-show="visible"
-      ref="editorRef"
-      class="dms-cell-editor"
-      :style="editorStyle"
-      @keydown.enter="handleSaveEditorValue"
-      @keydown.esc="handleCloseEditor"
-      @click.stop
-    >
+    <div v-show="editDown.visible" ref="editorRef" class="dms-cell-editor" :style="editorStyle"
+      @keydown.enter="handleSaveEditorValue" @keydown.esc="handleCloseEditor" @click.stop>
       <!-- 输入框编辑器 -->
-      <el-input
-        v-if="editType === 'input'"
-        ref="inputRef"
-        v-model="editValue"
-        @change="handleSaveEditorValue"
-        @keydown.stop
-      />
+      <el-input v-if="editDown.editType === 'input'" ref="inputRef" v-model="editValue" @change="handleSaveEditorValue"
+        @keydown.stop />
 
       <!-- 下拉选择编辑器 -->
-      <el-select
-        v-else-if="editType === 'select'"
-        ref="selectRef"
-        v-model="editValue"
-        @change="handleSaveEditorValue"
-        @keydown.stop
-      >
-        <el-option v-for="option in editOptions" :key="option.value" :label="option.label" :value="option.value" />
+      <el-select v-else-if="editDown.editType === 'select'" ref="selectRef" v-model="editValue"
+        @change="handleSaveEditorValue" @keydown.stop>
+        <el-option v-for="option in editDown.editOptions" :key="option.value" :label="option.label"
+          :value="option.value" />
       </el-select>
 
       <!-- 日期编辑器 -->
-      <el-date-picker
-        v-else-if="editType === 'date'"
-        ref="dateRef"
-        v-model="editValue"
-        type="date"
-        format="YYYY-MM-DD"
-        value-format="YYYY-MM-DD"
-        @blur="handleSaveEditorValue"
-        @keydown.stop
-      />
+      <el-date-picker v-else-if="editDown.editType === 'date'" ref="dateRef" v-model="editValue" type="date"
+        format="YYYY-MM-DD" value-format="YYYY-MM-DD" @blur="handleSaveEditorValue" @keydown.stop />
 
       <!-- 日期时间编辑器 -->
-      <el-date-picker
-        v-else-if="editType === 'datetime'"
-        ref="datetimeRef"
-        v-model="editValue"
-        type="datetime"
-        format="YYYY-MM-DD HH:mm:ss"
-        value-format="YYYY-MM-DD HH:mm:ss"
-        @blur="handleSaveEditorValue"
-        @keydown.stop
-      />
+      <el-date-picker v-else-if="editDown.editType === 'datetime'" ref="datetimeRef" v-model="editValue" type="datetime"
+        format="YYYY-MM-DD HH:mm:ss" value-format="YYYY-MM-DD HH:mm:ss" @blur="handleSaveEditorValue" @keydown.stop />
     </div>
   </teleport>
 </template>
 
 <script setup lang="ts">
+import Konva from 'konva'
+import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElDatePicker, ElInput, ElOption, ElSelect } from 'element-plus'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+
+interface EditDown {
+  visible: boolean
+  x: number
+  y: number
+  width: number
+  height: number
+  editType: 'input' | 'select' | 'date' | 'datetime'
+  editOptions?: EditOptions[]
+  initialValue: string | number
+  originalClientX: number
+  originalClientY: number
+}
 
 interface EditOptions {
   label: string
   value: string | number
 }
 
-interface Props {
-  visible: boolean
-  editType: 'input' | 'select' | 'date' | 'datetime'
-  editOptions?: EditOptions[]
-  initialValue: string | number
-  position: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-}
 
-interface Emits {
-  (eventName: 'save', value: number | string): void
-  (eventName: 'close'): void
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  editOptions: () => []
-})
-
-const emits = defineEmits<Emits>()
 
 const editorRef = ref<HTMLElement>()
 const inputRef = ref<InstanceType<typeof ElInput>>()
@@ -97,15 +58,26 @@ const datetimeRef = ref<InstanceType<typeof ElDatePicker>>()
 
 const editValue = ref<string | number>('')
 
+const editDown = reactive<EditDown>({
+  visible: false,
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+  editType: 'input',
+  initialValue: '',
+  originalClientX: 0,
+  originalClientY: 0
+})
+
 // 计算编辑器样式
 const editorStyle = computed(() => {
-  const { x, y, width, height } = props.position
   return {
     position: 'fixed' as const,
-    left: `${x + 1}px`,
-    top: `${y + 1}px`,
-    width: `${width - 3}px`,
-    height: `${height - 2}px`,
+    left: `${editDown.x + 1}px`,
+    top: `${editDown.y + 1}px`,
+    width: `${editDown.width - 3}px`,
+    height: `${editDown.height - 2}px`,
     zIndex: 999999,
 
     background: '#fff',
@@ -116,24 +88,29 @@ const editorStyle = computed(() => {
   }
 })
 
-// 监听显示状态变化
-watch(
-  () => props.visible,
-  (visible) => {
-    if (visible) {
-      editValue.value = props.initialValue
-      nextTick(() => {
-        focusEditor()
-      })
-    }
-  },
-  { immediate: true }
-)
+const openEditDropdown = (
+  evt: KonvaEventObject<MouseEvent, Konva.Shape>,
+  editType: 'input' | 'select' | 'date' | 'datetime',
+  initialValue: string | number,
+  editOptions?: EditOptions[]
+) => {
+  const { clientX, clientY } = evt.evt
+  const scrollX = window.pageXOffset || document.documentElement.scrollLeft
+  const scrollY = window.pageYOffset || document.documentElement.scrollTop
+  editDown.originalClientX = clientX + scrollX
+  editDown.originalClientY = clientY + scrollY
+  editDown.editType = editType
+  editDown.editOptions = editOptions
+  editDown.initialValue = initialValue
+  editValue.value = initialValue
+  editDown.visible = true
+}
+
 
 // 聚焦编辑器
 const focusEditor = () => {
   nextTick(() => {
-    switch (props.editType) {
+    switch (editDown.editType) {
       case 'input':
         inputRef.value?.focus()
         break
@@ -150,22 +127,21 @@ const focusEditor = () => {
 // 保存编辑
 const handleSaveEditorValue = () => {
   // 只有当值发生变化时才保存
-  if (editValue.value !== props.initialValue) {
-    emits('save', editValue.value)
+  if (editValue.value !== editDown.initialValue) {
+    editDown.visible = false
   } else {
-    // 值没有变化，直接取消编辑
-    emits('close')
+    editDown.visible = false
   }
 }
 
 // 取消编辑
 const handleCloseEditor = () => {
-  emits('close')
+  editDown.visible = false
 }
 
 // 点击外部关闭编辑器
 const handleClickOutside = (e: MouseEvent) => {
-  if (props.visible && editorRef.value && !editorRef.value.contains(e.target as Node)) {
+  if (editDown.visible && editorRef.value && !editorRef.value.contains(e.target as Node)) {
     // 检查是否点击了 Element Plus 的下拉面板
     const target = e.target as HTMLElement
     const isElSelectDropdown = target.closest('.el-select-dropdown, .el-popper, .el-picker-panel')
@@ -183,10 +159,15 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside, true)
 })
+
+defineExpose({
+  openEditDropdown
+})
 </script>
 
 <style lang="scss" scoped>
 .dms-cell-editor {
+
   // 输入框样式
   :deep(.el-input) {
     height: 100%;

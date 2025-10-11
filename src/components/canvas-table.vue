@@ -4,6 +4,9 @@
   <filter-dropdown ref="filterDropdownRef" />
   <!-- 汇总下拉组件 -->
   <summary-dropdown ref="summaryDropdownRef" />
+  <!-- 单元格编辑器组件 -->
+  <cell-editor ref="cellEditorRef" />
+  
 </template>
 <script lang="ts" setup>
 import { tableProps, staticParams } from './parameter';
@@ -16,6 +19,8 @@ import { summaryDropdownRef } from "./summary-handler"
 import { refreshTable } from './stage-handler';
 import FilterDropdown from './components/filter-dropdown.vue';
 import SummaryDropdown from './components/summary-dropdown.vue';
+import CellEditor from './components/cell-editor.vue';
+import { cellEditorRef } from './body-handler';
 
 const props = defineProps(tableProps);
 

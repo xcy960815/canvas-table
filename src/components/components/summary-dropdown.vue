@@ -15,7 +15,7 @@ import { ref, reactive, nextTick, computed } from 'vue'
 import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { getDropdownPosition } from "../utils"
-import { clearGroups,refreshTable } from "../stage-handler"
+import { refreshTable } from "../stage-handler"
 import { summaryState } from "../summary-handler"
 
 const summaryDropdownRef = ref<HTMLElement | null>(null)

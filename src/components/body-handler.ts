@@ -5,6 +5,8 @@ import { stageVars, getStageSize } from "./stage-handler";
 import { getSummaryRowHeight } from './summary-handler'
 import { scrollbarVars } from "./scrollbar-handler";
 import { staticParams, tableData } from "./parameter";
+import CellEditor from './components/cell-editor.vue'
+import { ref } from "vue"
 
 interface BodyVars {
     /**
@@ -74,6 +76,10 @@ export const bodyVars: BodyVars = {
     visibleRowCount: 0
 }
 
+/**
+ * 单元格编辑器组件引用
+ */
+export const cellEditorRef = ref<InstanceType<typeof CellEditor> | null>(null)
 /**
  * 创建body左侧组
  * @param x x坐标

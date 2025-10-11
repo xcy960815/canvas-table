@@ -16,7 +16,7 @@ import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { filterColumns } from "../data-handler"
-import { stageVars, clearGroups } from "../stage-handler"
+import { stageVars, rebuildGroups } from "../stage-handler"
 import { handleTableData } from "../data-handler"
 import { getDropdownPosition } from "../utils"
 export interface FilterDropdown {
@@ -197,7 +197,7 @@ const handleSelectedFilter = () => {
   }
   // 重新处理表格数据，应用过滤条件
   handleTableData()
-  clearGroups()
+  rebuildGroups()
 }
 
 /**
