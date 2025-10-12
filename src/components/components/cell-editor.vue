@@ -1,7 +1,7 @@
 <template>
   <teleport to="body">
     <div v-show="editDown.visible" ref="editorRef" class="dms-cell-editor" :style="editorStyle"
-      @keydown.enter="handleSaveEditorValue" @keydown.esc="handleCloseEditor" @click.stop>
+      @keydown.enter="handleSaveEditorValue" @keydown.esc="closeEditor" @click.stop>
       <!-- 输入框编辑器 -->
       <el-input v-if="editDown.editType === 'input'" ref="inputRef" v-model="editValue" @change="handleSaveEditorValue"
         @keydown.stop />
@@ -28,7 +28,9 @@
 import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElDatePicker, ElInput, ElOption, ElSelect } from 'element-plus'
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { stageVars } from '../stage-handler'
+import { getDropdownPosition } from '../utils'
 
 interface EditDown {
   visible: boolean
@@ -79,7 +81,6 @@ const editorStyle = computed(() => {
     width: `${editDown.width - 3}px`,
     height: `${editDown.height - 2}px`,
     zIndex: 999999,
-
     background: '#fff',
     padding: 0,
     margin: 0,
@@ -88,41 +89,64 @@ const editorStyle = computed(() => {
   }
 })
 
-const openEditDropdown = (
+/**
+ * 打开编辑器
+ * @param {KonvaEventObject<MouseEvent, Konva.Shape>} evt 事件对象
+ * @param {string} editType 编辑类型
+ * @param {string | number} initialValue 初始值
+ * @param {EditOptions[]} editOptions 编辑选项
+ */
+const openEditor = (
   evt: KonvaEventObject<MouseEvent, Konva.Shape>,
   editType: 'input' | 'select' | 'date' | 'datetime',
   initialValue: string | number,
   editOptions?: EditOptions[]
 ) => {
+  // 存储原始点击位置（转换为页面坐标，考虑滚动偏移）
   const { clientX, clientY } = evt.evt
   const scrollX = window.pageXOffset || document.documentElement.scrollLeft
   const scrollY = window.pageYOffset || document.documentElement.scrollTop
   editDown.originalClientX = clientX + scrollX
   editDown.originalClientY = clientY + scrollY
-  editDown.editType = editType
-  editDown.editOptions = editOptions
-  editDown.initialValue = initialValue
-  editValue.value = initialValue
   editDown.visible = true
-}
 
-
-// 聚焦编辑器
-const focusEditor = () => {
   nextTick(() => {
-    switch (editDown.editType) {
-      case 'input':
-        inputRef.value?.focus()
-        break
-      case 'select':
-        break
-      case 'date':
-        break
-      case 'datetime':
-        break
-    }
+    if (!editorRef.value) return
+    const editorEl = editorRef.value
+    if (!editorEl) return
+    const editorElRect = editorEl.getBoundingClientRect()
+    const editorElHeight = Math.ceil(editorElRect.height)
+    const editorElWidth = Math.ceil(editorElRect.width)
+    const { dropdownX, dropdownY } = getDropdownPosition(
+      clientX,
+      clientY,
+      editorElWidth,
+      editorElHeight
+    )
+    editDown.x = dropdownX
+    editDown.y = dropdownY
+    editDown.editType = editType
+    editDown.editOptions = editOptions
+    editDown.initialValue = initialValue
+    editValue.value = initialValue
+    
+    // 聚焦编辑器
+    nextTick(() => {
+      switch (editDown.editType) {
+        case 'input':
+          inputRef.value?.focus()
+          break
+        case 'select':
+          break
+        case 'date':
+          break
+        case 'datetime':
+          break
+      }
+    })
   })
 }
+
 
 // 保存编辑
 const handleSaveEditorValue = () => {
@@ -135,33 +159,100 @@ const handleSaveEditorValue = () => {
 }
 
 // 取消编辑
-const handleCloseEditor = () => {
+const closeEditor = () => {
   editDown.visible = false
 }
 
-// 点击外部关闭编辑器
-const handleClickOutside = (e: MouseEvent) => {
-  if (editDown.visible && editorRef.value && !editorRef.value.contains(e.target as Node)) {
-    // 检查是否点击了 Element Plus 的下拉面板
-    const target = e.target as HTMLElement
-    const isElSelectDropdown = target.closest('.el-select-dropdown, .el-popper, .el-picker-panel')
-    if (!isElSelectDropdown) {
-      // 点击外部时保存数据而不是取消
-      handleSaveEditorValue()
-    }
+/**
+ * 更新编辑器位置（用于表格内部滚动）
+ */
+const updateEditorPosition = () => {
+  // 本次开发先隐藏掉
+  if (editDown.visible && editorRef.value) {
+    editDown.visible = false
   }
 }
 
+/**
+ * 滚动事件处理函数
+ */
+const updatePositions = () => {
+  if (editDown.visible && editorRef.value) {
+    const editorElRect = editorRef.value.getBoundingClientRect()
+    const editorElHeight = Math.ceil(editorElRect.height)
+    const editorElWidth = Math.ceil(editorElRect.width)
+
+    // 获取当前滚动偏移量
+    const scrollX = window.pageXOffset || document.documentElement.scrollLeft
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop
+
+    // 将保存的页面坐标转换为当前的视口坐标
+    const currentClientX = editDown.originalClientX - scrollX
+    const currentClientY = editDown.originalClientY - scrollY
+
+    const { dropdownX, dropdownY } = getDropdownPosition(
+      currentClientX,
+      currentClientY,
+      editorElWidth,
+      editorElHeight
+    )
+    editDown.x = dropdownX
+    editDown.y = dropdownY
+  }
+}
+
+/**
+ * 点击外部关闭编辑器（允许点击 Element Plus 下拉面板）
+ * @param {MouseEvent} mouseEvent 鼠标事件
+ */
+const onGlobalMousedown = (mouseEvent: MouseEvent) => {
+  if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
+  const target = mouseEvent.target as HTMLElement | null
+  if (!target) return
+
+  if (!editDown.visible) return
+  const panel = editorRef.value
+
+  if (panel && panel.contains(target)) return
+  const inElSelectDropdown = target.closest('.el-select-dropdown, .el-select__popper, .el-popper, .el-picker-panel')
+  if (!inElSelectDropdown) {
+    // 点击外部时保存数据而不是取消
+    handleSaveEditorValue()
+  }
+}
+
+/**
+ * 初始化事件监听器
+ */
+const initListeners = () => {
+  window.addEventListener('scroll', updatePositions)
+  document.addEventListener('scroll', updatePositions)
+  document.addEventListener('mousedown', onGlobalMousedown, true)
+}
+
+/**
+ * 清理事件监听器
+ */
+const cleanupListeners = () => {
+  window.removeEventListener('scroll', updatePositions)
+  document.removeEventListener('scroll', updatePositions)
+  document.removeEventListener('mousedown', onGlobalMousedown, true)
+}
+
+// 生命周期
 onMounted(() => {
-  document.addEventListener('mousedown', handleClickOutside, true)
+  initListeners()
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', handleClickOutside, true)
+  cleanupListeners()
 })
 
+// 暴露方法供外部使用
 defineExpose({
-  openEditDropdown
+  openEditor,
+  closeEditor,
+  updateEditorPosition,
 })
 </script>
 

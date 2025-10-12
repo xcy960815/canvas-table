@@ -75,7 +75,7 @@ const filterDropdownStyle = computed(() => {
 /**
  * 更新过滤下拉浮层位置（用于表格内部滚动）
  */
-const updateFilterDropdownPositionsInTable = () => {
+const updateFilterDropdownPosition = () => {
   // 本次开发先隐藏掉
   if (filterDropdown.visible && filterDropdownRef.value) {
     filterDropdown.visible = false
@@ -92,7 +92,7 @@ const closeFilterDropdown = () => {
 /**
  * 滚动事件处理函数
  */
-const updateFilterDropdownPositionsInPage = () => {
+const updatePositions = () => {
   if (filterDropdown.visible && filterDropdownRef.value) {
     const filterDropdownElRect = filterDropdownRef.value.getBoundingClientRect()
     const filterDropdownElHeight = Math.ceil(filterDropdownElRect.height)
@@ -121,6 +121,10 @@ const updateFilterDropdownPositionsInPage = () => {
 
 /**
  * 打开过滤下拉浮层
+ * @param {KonvaEventObject<MouseEvent, Konva.Shape>} event 事件对象
+ * @param {string} colName 列名
+ * @param {string[]} options 选项列表
+ * @param {string[]} selected 已选中的选项
  */
 const openFilterDropdown = (
   event: KonvaEventObject<MouseEvent, Konva.Shape>,
@@ -137,7 +141,6 @@ const openFilterDropdown = (
   filterDropdown.visible = true
 
   nextTick(() => {
-    debugger
     if (!filterDropdownRef.value) return
     const filterDropdownEl = filterDropdownRef.value
     if (!filterDropdownEl) return
@@ -160,7 +163,8 @@ const openFilterDropdown = (
 
 /**
  * 点击外部关闭（允许点击 Element Plus 下拉面板）
- * @param e 鼠标事件
+ * @param 「MouseEvent mouseEvent 鼠标事件
+ * @param {HTMLElement | null} target 目标元素
  * @returns {void}
  */
 const onGlobalMousedown = (mouseEvent: MouseEvent) => {
@@ -203,40 +207,35 @@ const handleSelectedFilter = () => {
 /**
  * 初始化事件监听器
  */
-const initFilterDropdownListeners = () => {
-  window.addEventListener('scroll', updateFilterDropdownPositionsInPage)
-  document.addEventListener('scroll', updateFilterDropdownPositionsInPage)
+const initListeners = () => {
+  window.addEventListener('scroll', updatePositions)
+  document.addEventListener('scroll', updatePositions)
   document.addEventListener('mousedown', onGlobalMousedown, true)
 }
 
 /**
  * 清理事件监听器
  */
-const cleanupFilterDropdownListeners = () => {
-  window.removeEventListener('scroll', updateFilterDropdownPositionsInPage)
-  document.removeEventListener('scroll', updateFilterDropdownPositionsInPage)
+const cleanupListeners = () => {
+  window.removeEventListener('scroll', updatePositions)
+  document.removeEventListener('scroll', updatePositions)
   document.removeEventListener('mousedown', onGlobalMousedown, true)
 }
 
 // 生命周期
 onMounted(() => {
-  initFilterDropdownListeners()
+  initListeners()
 })
 
 onBeforeUnmount(() => {
-  cleanupFilterDropdownListeners()
+  cleanupListeners()
 })
 
 // 暴露方法供外部使用
 defineExpose({
-  filterDropdownRef,
-  filterDropdown,
   openFilterDropdown,
   closeFilterDropdown,
-  updateFilterDropdownPositionsInTable,
-  handleSelectedFilter,
-  initFilterDropdownListeners,
-  cleanupFilterDropdownListeners
+  updateFilterDropdownPosition,
 })
 </script>
 

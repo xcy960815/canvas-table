@@ -3,7 +3,7 @@
     <div ref="summaryDropdownRef" v-show="summaryDropdown.visible" class="dms-summary-dropdown"
       :style="summaryDropdownStyle">
       <el-select v-model="summaryDropdown.selectedValue" size="small" placeholder="选择汇总" style="width: 160px"
-        @change="handleSummaryChange" @blur="handleSummaryBlur" @keydown.stop>
+        @change="handleSummaryChange" @blur="closeSummaryDropdown" @keydown.stop>
         <el-option v-for="opt in summaryDropdown.options" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
     </div>
@@ -11,11 +11,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, computed } from 'vue'
+import { ref, reactive, nextTick, computed, onMounted, onBeforeUnmount } from 'vue'
 import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { getDropdownPosition } from "../utils"
-import { refreshTable } from "../stage-handler"
+import { stageVars, refreshTable } from "../stage-handler"
 import { summaryState } from "../summary-handler"
 
 const summaryDropdownRef = ref<HTMLElement | null>(null)
@@ -24,7 +24,7 @@ const summaryDropdownRef = ref<HTMLElement | null>(null)
  * 汇总下拉选中值变化
  * @param {string} value 选中值
  */
-const handleSummaryChange = (value: string) => {
+const handleSummaryChange = () => {
   const colName = summaryDropdown.colName
   const selected = summaryDropdown.selectedValue
   summaryState[colName] = selected
@@ -33,9 +33,6 @@ const handleSummaryChange = (value: string) => {
   summaryDropdown.visible = false
 }
 
-const handleSummaryBlur = () => {
-
-}
 
 interface SummaryDropdownOption {
   label: string
@@ -81,10 +78,9 @@ const summaryDropdown = reactive<SummaryDropdown>({
 
 /**
  * 打开汇总下拉
- * @param {number} clientX 鼠标点击位置的 X 坐标
- * @param {number} clientY 鼠标点击位置的 Y 坐标
+ * @param {KonvaEventObject<MouseEvent, Konva.Rect>} evt 事件对象
  * @param {string} colName 列名
- * @param {Array<{ label: string; value: string }>} options 选项列表
+ * @param {Array<SummaryDropdownOption>} options 选项列表
  * @param {string} selected 已选中的选项
  */
 const openSummaryDropdown = (
@@ -124,7 +120,7 @@ const openSummaryDropdown = (
 /**
  * 更新汇总下拉浮层位置
  */
-const updateSummaryDropdownPositionsInTable = () => {
+const updatePositions = () => {
   // 本次开发先隐藏掉
   if (summaryDropdown.visible && summaryDropdownRef.value) {
     summaryDropdown.visible = false
@@ -155,42 +151,60 @@ const closeSummaryDropdown = () => {
   summaryDropdown.visible = false
 }
 
+
 /**
- *
+ * 点击外部关闭（允许点击 Element Plus 下拉面板）
+ * @param 「MouseEvent mouseEvent 鼠标事件
+ * @param {HTMLElement | null} target 目标元素
+ * @returns {void}
  */
-const updateSummaryDropdownPositionsInPage = () => {
-  // 本次开发先隐藏掉
-  if (summaryDropdown.visible && summaryDropdownRef.value) {
+const onGlobalMousedown = (mouseEvent: MouseEvent) => {
+  if (stageVars.stage) stageVars.stage.setPointersPositions(mouseEvent)
+  const target = mouseEvent.target as HTMLElement | null
+  if (!target) return
+
+  if (!summaryDropdown.visible) return
+  const panel = summaryDropdownRef.value
+
+  if (panel && panel.contains(target)) return
+  const inElSelectDropdown = target.closest('.el-select-dropdown, .el-select__popper')
+  if (!inElSelectDropdown) {
     summaryDropdown.visible = false
   }
-  // // 如果汇总下拉框可见，重新计算位置
-  // if (summaryDropdown.visible && summaryDropdownRef.value) {
-  //   const summaryDropdownElRect = summaryDropdownRef.value.getBoundingClientRect()
-  //   const summaryDropdownElHeight = Math.ceil(summaryDropdownElRect.height)
-  //   const summaryDropdownElWidth = Math.ceil(summaryDropdownElRect.width)
-
-  //   // 获取当前滚动偏移量
-  //   const scrollX = window.pageXOffset || document.documentElement.scrollLeft
-  //   const scrollY = window.pageYOffset || document.documentElement.scrollTop
-
-  //   // 将保存的页面坐标转换为当前的视口坐标
-  //   const currentClientX = summaryDropdown.originalClientX - scrollX
-  //   const currentClientY = summaryDropdown.originalClientY - scrollY
-
-  //   const { dropdownX, dropdownY } = getDropdownPosition(
-  //     currentClientX,
-  //     currentClientY,
-  //     summaryDropdownElWidth,
-  //     summaryDropdownElHeight
-  //   )
-  //   summaryDropdown.x = dropdownX
-  //   summaryDropdown.y = dropdownY
-  // }
 }
+
+/**
+ * 初始化事件监听器
+ */
+const initListeners = () => {
+  window.addEventListener('scroll', updatePositions)
+  document.addEventListener('scroll', updatePositions)
+  document.addEventListener('mousedown', onGlobalMousedown, true)
+}
+
+/**
+ * 清理事件监听器
+ */
+const cleanupListeners = () => {
+  window.removeEventListener('scroll', updatePositions)
+  document.removeEventListener('scroll', updatePositions)
+  document.removeEventListener('mousedown', onGlobalMousedown, true)
+}
+
+// 生命周期
+onMounted(() => {
+  initListeners()
+})
+
+onBeforeUnmount(() => {
+  cleanupListeners()
+})
 
 
 defineExpose({
-  openSummaryDropdown
+  openSummaryDropdown,
+  closeSummaryDropdown,
+  updatePositions
 })
 </script>
 
