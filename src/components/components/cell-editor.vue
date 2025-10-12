@@ -3,22 +3,22 @@
     <div v-show="editDown.visible" ref="editorRef" class="dms-cell-editor" :style="editorStyle"
       @keydown.enter="handleSaveEditorValue" @keydown.esc="closeEditor" @click.stop>
       <!-- 输入框编辑器 -->
-      <el-input v-if="editDown.editType === 'input'" ref="inputRef" v-model="editValue" @change="handleSaveEditorValue"
+      <el-input v-if="editDown.editType === 'input'" ref="inputRef" v-model="editDown.initialValue" @change="handleSaveEditorValue"
         @keydown.stop />
 
       <!-- 下拉选择编辑器 -->
-      <el-select v-else-if="editDown.editType === 'select'" ref="selectRef" v-model="editValue"
+      <el-select v-else-if="editDown.editType === 'select'" ref="selectRef" v-model="editDown.initialValue"
         @change="handleSaveEditorValue" @keydown.stop>
         <el-option v-for="option in editDown.editOptions" :key="option.value" :label="option.label"
           :value="option.value" />
       </el-select>
 
       <!-- 日期编辑器 -->
-      <el-date-picker v-else-if="editDown.editType === 'date'" ref="dateRef" v-model="editValue" type="date"
+      <el-date-picker v-else-if="editDown.editType === 'date'" ref="dateRef" v-model="editDown.initialValue" type="date"
         format="YYYY-MM-DD" value-format="YYYY-MM-DD" @blur="handleSaveEditorValue" @keydown.stop />
 
       <!-- 日期时间编辑器 -->
-      <el-date-picker v-else-if="editDown.editType === 'datetime'" ref="datetimeRef" v-model="editValue" type="datetime"
+      <el-date-picker v-else-if="editDown.editType === 'datetime'" ref="datetimeRef" v-model="editDown.initialValue" type="datetime"
         format="YYYY-MM-DD HH:mm:ss" value-format="YYYY-MM-DD HH:mm:ss" @blur="handleSaveEditorValue" @keydown.stop />
     </div>
   </teleport>
@@ -41,6 +41,7 @@ interface EditDown {
   editType: 'input' | 'select' | 'date' | 'datetime'
   editOptions?: EditOptions[]
   initialValue: string | number
+  originalValue: string | number
   originalClientX: number
   originalClientY: number
 }
@@ -58,8 +59,6 @@ const selectRef = ref<InstanceType<typeof ElSelect>>()
 const dateRef = ref<InstanceType<typeof ElDatePicker>>()
 const datetimeRef = ref<InstanceType<typeof ElDatePicker>>()
 
-const editValue = ref<string | number>('')
-
 const editDown = reactive<EditDown>({
   visible: false,
   x: 0,
@@ -68,6 +67,7 @@ const editDown = reactive<EditDown>({
   height: 0,
   editType: 'input',
   initialValue: '',
+  originalValue: '',
   originalClientX: 0,
   originalClientY: 0
 })
@@ -99,7 +99,7 @@ const editorStyle = computed(() => {
 const openEditor = (
   evt: KonvaEventObject<MouseEvent, Konva.Shape>,
   editType: 'input' | 'select' | 'date' | 'datetime',
-  initialValue: string | number,
+  initialValue: ChartDataVo.ChartData[keyof ChartDataVo.ChartData],
   editOptions?: EditOptions[]
 ) => {
   // 存储原始点击位置（转换为页面坐标，考虑滚动偏移）
@@ -127,9 +127,10 @@ const openEditor = (
     editDown.y = dropdownY
     editDown.editType = editType
     editDown.editOptions = editOptions
-    editDown.initialValue = initialValue
-    editValue.value = initialValue
-    
+    const safeValue = (initialValue ?? '') as string | number
+    editDown.initialValue = safeValue
+    editDown.originalValue = safeValue
+
     // 聚焦编辑器
     nextTick(() => {
       switch (editDown.editType) {
@@ -151,7 +152,9 @@ const openEditor = (
 // 保存编辑
 const handleSaveEditorValue = () => {
   // 只有当值发生变化时才保存
-  if (editValue.value !== editDown.initialValue) {
+  if (editDown.initialValue !== editDown.originalValue) {
+    // 保存数据
+    console.log('保存数据', editDown.initialValue)
     editDown.visible = false
   } else {
     editDown.visible = false
