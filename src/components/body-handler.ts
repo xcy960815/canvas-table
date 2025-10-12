@@ -7,6 +7,7 @@ import { scrollbarVars } from "./scrollbar-handler";
 import { staticParams, tableData } from "./parameter";
 import CellEditor from './components/cell-editor.vue'
 import { ref } from "vue"
+import type { KonvaEventObject } from 'konva/lib/Node'
 
 interface BodyVars {
     /**
@@ -80,6 +81,7 @@ export const bodyVars: BodyVars = {
  * 单元格编辑器组件引用
  */
 export const cellEditorRef = ref<InstanceType<typeof CellEditor> | null>(null)
+
 /**
  * 创建body左侧组
  * @param x x坐标
@@ -164,16 +166,9 @@ export const calculateVisibleRows = () => {
         tableData.value.length - 1,
         startRow + bodyVars.visibleRowCount + staticParams.bufferRows
     )
-    
+
 }
-/**
- * 计算列宽总和
- * @param {Array<GroupStore.GroupOption | DimensionStore.DimensionOption>} columns - 列数组
- * @returns {number} 列宽总和
- */
-const sumWidth = (columns: Array<GroupStore.GroupOption | DimensionStore.DimensionOption>) => {
-    return columns.reduce((acc, column) => acc + (column.width || 0), 0)
-}
+
 
 /**
  * 列信息存储结果
@@ -308,8 +303,8 @@ const drawMergedCell = (
         fill: staticParams.bodyTextColor,
         align: columnOption.align ?? 'left',
         verticalAlign: columnOption.verticalAlign ?? 'middle',
-        height:height,
-        width:width,
+        height: height,
+        width: width,
         group: bodyGroup
     })
 }
@@ -340,7 +335,7 @@ const drawNormalCell = (
     row: ChartDataVo.ChartData,
 ) => {
     // 绘制单元格背景
-    drawUnifiedRect({
+    const cellRect = drawUnifiedRect({
         pools,
         name: 'cell-rect',
         x,
@@ -352,6 +347,11 @@ const drawNormalCell = (
         strokeWidth: 1,
         group: bodyGroup
     })
+    if (columnOption.editable) {
+        cellRect.on('click', (event: KonvaEventObject<MouseEvent, Konva.Rect>) => {
+            cellEditorRef.value?.openEditor(event, columnOption.editType!, row[columnOption.columnName] as string | number, columnOption.editOptions)
+        })
+    }
 
 
     // 绘制单元格文本
@@ -364,8 +364,8 @@ const drawNormalCell = (
         text: truncatedValue,
         x,
         y,
-        height:height,
-        width:width,
+        height: height,
+        width: width,
         fontSize: staticParams.bodyFontSize,
         fontFamily: staticParams.bodyFontFamily,
         fill: staticParams.bodyTextColor,

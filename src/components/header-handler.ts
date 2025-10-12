@@ -2,8 +2,8 @@ import { ref } from 'vue'
 import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { stageVars, clearGroups } from './stage-handler'
-import { staticParams, tableData } from './parameter'
-import { filterColumns, sortColumns, handleTableData, getColumnSortStatus, handleMultiColumnSort } from './data-handler'
+import { staticParams } from './parameter'
+import { filterColumns, handleTableData, getColumnSortStatus, handleMultiColumnSort } from './data-handler'
 import {
     truncateText,
     setPointerStyle,
@@ -11,6 +11,7 @@ import {
     drawUnifiedRect,
     drawUnifiedText,
 } from './utils'
+
 import FilterDropdown from './components/filter-dropdown.vue'
 
 
